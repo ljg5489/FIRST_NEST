@@ -1,0 +1,48 @@
+// 파일 위치: src/services/tour-api/dongcode.ts
+// 파일 명: dongcode.ts
+
+const baseUrl = 'https://apis.data.go.kr/B551011/KorService2/ldongCode2';
+
+// 법정동 시도 코드 볼 수 있는 함수
+export async function fetchDongCodes() {
+  //env 파일에서 api 키를 받아옴
+  const apiKey = process.env.TOUR_API_KEY;
+
+  if (!apiKey) {
+    throw new Error('.env.local에 TOUR_API_KEY가 없습니다.');
+  }
+
+  //areaBasedList2(지역기반 관광정보 조회)에 대한 파라미터
+  const queryParams = new URLSearchParams({
+    serviceKey: apiKey,
+    MobileOS: 'ETC',
+    MobileApp: 'TravelWithMe',
+    _type: 'json',
+    numOfRows: '1000000000',
+    pageNo: '1',
+    lDongListYn: 'Y'
+  }).toString();
+
+
+  const url = `${baseUrl}?${queryParams}`;
+
+  try {
+    const response = await fetch(url, { cache: 'no-store' });
+    
+    if (!response.ok) {
+      // 에러가 날 경우 터미널에 공공데이터포털 서버의 실제 에러 원인을 찍음
+      const errorText = await response.text();
+      console.error(`Tour API 통신 에러 (상태코드: ${response.status})`);
+      console.error(`상세 에러 내용: ${errorText}`);
+      throw new Error('API 통신 실패');
+    }
+    
+    const data = await response.json();
+    
+    const items = data?.response?.body?.items?.item || [];
+    return items;
+  } catch (error) {
+    console.error('Tour API 호출 에러:', error);
+    return [];
+  }
+}
