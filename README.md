@@ -14,6 +14,9 @@ Next.js App Router와 **도메인 주도 설계(DDD, Domain-Driven Design)** 아
 
 기능(Feature)과 서비스(Service) 단위로 폴더를 분리하여 확장성과 유지보수성을 극대화한 아키텍처입니다.
 
+> 최신화 되어 있는 스프레드 시트는 아래 주소로 확인 가능합니다.
+> https://docs.google.com/spreadsheets/d/1Xae2YYWG0mWeeUyIIUS4UZKmjsbfFl7KN8zFjmy69DM/edit?usp=sharing
+
 ```text
 src
  ├─app                    # Next.js 라우팅 및 전역 설정 계층
