@@ -1,20 +1,15 @@
-// 파일 위치: src/services/supabase/client.ts
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabasePublishableKey =
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-// 관리자 키 불러오기
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('.env.local에 Supabase 환경변수가 누락되었습니다.');
+if (!supabaseUrl || !supabasePublishableKey) {
+  throw new Error(
+    '.env.local에 NEXT_PUBLIC_SUPABASE_URL과 Supabase publishable key가 필요합니다.',
+  );
 }
 
-// 프론트엔드/일반 사용자용 (읽기 전용, RLS 적용)
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-// 서버/관리자용 (쓰기/삭제 가능, RLS 무시)
-export const supabaseAdmin = supabaseServiceKey 
-  ? createClient(supabaseUrl, supabaseServiceKey) 
-  : null;
+// 공개 조회용 클라이언트입니다. places의 RLS 정책이 항상 적용됩니다.
+export const supabase = createClient(supabaseUrl, supabasePublishableKey);

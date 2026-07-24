@@ -2,6 +2,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import type { PlaceListItem } from '../../tourism/server/queries';
 
 declare global {
   interface Window {
@@ -11,8 +12,7 @@ declare global {
 }
 
 interface KakaoMapProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  places?: any[];
+  places?: PlaceListItem[];
 }
 
 export default function KakaoMap({ places = [] }: KakaoMapProps) {
@@ -71,21 +71,28 @@ export default function KakaoMap({ places = [] }: KakaoMapProps) {
   // 2. 지도가 로드된 후 관광지 마커를 찍는 로직
   useEffect(() => {
     if (mapInstance && places.length > 0) {
-      places.forEach((place) => {
-        if (place.mapy && place.mapx) {
+      const markers = places.flatMap((place) => {
+        if (place.latitude !== null && place.longitude !== null) {
           const markerPosition = new window.kakao.maps.LatLng(
-            parseFloat(place.mapy),
-            parseFloat(place.mapx)
+            place.latitude,
+            place.longitude,
           );
 
           const marker = new window.kakao.maps.Marker({
             position: markerPosition,
-            title: place.title,
+            title: place.name_ko,
           });
 
           marker.setMap(mapInstance);
+          return [marker];
         }
+
+        return [];
       });
+
+      return () => {
+        markers.forEach((marker) => marker.setMap(null));
+      };
     }
   }, [mapInstance, places]);
 

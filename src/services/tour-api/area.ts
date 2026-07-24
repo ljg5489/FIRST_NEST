@@ -4,6 +4,23 @@
 const KOR_BASE_URL = 'https://apis.data.go.kr/B551011/KorService2/areaBasedList2';
 const ENG_BASE_URL = 'https://apis.data.go.kr/B551011/EngService2/areaBasedList2';
 
+export interface TourApiPlaceItem {
+  contentid: string;
+  contenttypeid: string;
+  title: string;
+  addr1?: string;
+  addr2?: string;
+  mapx?: string;
+  mapy?: string;
+  areacode?: string;
+  sigungucode?: string;
+  cat3?: string;
+  tel?: string;
+  modifiedtime?: string;
+  firstimage?: string;
+  [key: string]: unknown;
+}
+
 /*다른 파일에서도 접근이 가능하게 export 로 api 불러오기/ 파일 읽기 처럼 비동치 처리를 할 수 있도록
 async 로 만든 fetchChungnamTouristSpots 함수 매개변수로 kor, 이나 eng를 받고 만약 아무것도 안 받으면
 kor 로 작업*/
@@ -51,7 +68,7 @@ export async function fetchChungnamTouristSpots(lang: 'kor' | 'eng' = 'kor') {
     const data = await response.json();
     
     const items = data?.response?.body?.items?.item || [];
-    return items;
+    return items as TourApiPlaceItem[];
   } catch (error) {
     console.error('Tour API 호출 에러:', error);
     return [];
