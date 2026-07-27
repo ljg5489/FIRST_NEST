@@ -1,3 +1,5 @@
+// 진규 코드
+
 import { timingSafeEqual } from 'node:crypto';
 import { NextResponse } from 'next/server';
 

@@ -1,3 +1,5 @@
+// 진규 코드 
+
 import KakaoMap from '../../features/map/ui/KakaoMap';
 import { getPlacesFromDB } from '../../features/tourism/server/queries';
 

@@ -1,3 +1,4 @@
+// 파일 위치: src/services/supabase/client.ts
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;

@@ -21,11 +21,11 @@ export interface TourApiPlaceItem {
   [key: string]: unknown;
 }
 
-/*다른 파일에서도 접근이 가능하게 export 로 api 불러오기/ 파일 읽기 처럼 비동치 처리를 할 수 있도록
-async 로 만든 fetchChungnamTouristSpots 함수 매개변수로 kor, 이나 eng를 받고 만약 아무것도 안 받으면
-kor 로 작업*/
-export async function fetchChungnamTouristSpots(lang: 'kor' | 'eng' = 'kor') {
-  /* 받은 매개변수가 kor 이면 KOR_BASE_URL로 아니면 ENG_BASE_URL로 작업하라는 삼항연산자*/
+/* 다른 파일에서도 접근이 가능하게 export 로 api 불러오기/ 파일 읽기 처럼 비동치 처리를 할 수 있도록
+async 로 만든 fetchChungnamTouristSpots 함수 
+매개변수로 kor 이나 eng를 받고 만약 아무것도 안 받으면 kor 로 작업하며, pageNo를 받아 페이징 처리 지원 */
+export async function fetchChungnamTouristSpots(lang: 'kor' | 'eng' = 'kor', pageNo: number = 1) {
+  /* 받은 매개변수가 kor 이면 KOR_BASE_URL로 아니면 ENG_BASE_URL로 작업하라는 삼항연산자 */
   const baseUrl = lang === 'kor' ? KOR_BASE_URL : ENG_BASE_URL;
   //env 파일에서 api 키를 받아옴
   const apiKey = process.env.TOUR_API_KEY;
@@ -46,11 +46,10 @@ export async function fetchChungnamTouristSpots(lang: 'kor' | 'eng' = 'kor') {
     _type: 'json',
     arrange: 'A',
     numOfRows: '100',
-    pageNo: '1',
+    pageNo: pageNo.toString(), // 매개변수로 받은 pageNo 동적 적용
     contentTypeId: contentTypeId,
-    lDongRegnCd: '44' //충청남도 일부분 코드로 검색(충남 안에서도 여러 코드가 있음 또한 같은 코드를 가지고 있는 시가 있음 확인은 dongcode.ts 가 불러온 json 결과 확인)
+    lDongRegnCd: '44' //충청남도 일부분 코드로 검색
   }).toString();
-
 
   const url = `${baseUrl}?${queryParams}`;
 
@@ -70,7 +69,7 @@ export async function fetchChungnamTouristSpots(lang: 'kor' | 'eng' = 'kor') {
     const items = data?.response?.body?.items?.item || [];
     return items as TourApiPlaceItem[];
   } catch (error) {
-    console.error('Tour API 호출 에러:', error);
+    console.error(`[${pageNo}페이지] Tour API 호출 에러:`, error);
     return [];
   }
 }
