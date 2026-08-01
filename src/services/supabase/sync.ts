@@ -1,8 +1,10 @@
 // 파일 위치: src/services/supabase/sync.ts
 // 파일 명: sync.ts
 
-import { fetchChungnamTouristSpots } from '../tour-api/area';
 import { getSupabaseAdmin } from './admin';
+import { fetchFestival } from '../tour-api/event';
+// 사용하지 않는 기존 모듈 임포트 주석 처리
+// import { fetchChungnamTouristSpots } from '../tour-api/area'; 
 
 // Tour API의 14자리 문자열 (YYYYMMDDHHMMSS) 시간 데이터를 ISO 포맷으로 변환하는 함수
 function parseTourApiTimestamp(value?: string) {
@@ -21,8 +23,25 @@ function parseTourApiTimestamp(value?: string) {
   return new Date(formatted).toISOString();
 }
 
+// 🌟 새로 추가: YYYYMMDD 문자열을 YYYY-MM-DD 형태의 date 포맷으로 변환하는 함수
+function parseTourApiDate(value?: string) {
+  if (!value || !/^\d{8}$/.test(value)) {
+    return null;
+  }
+  return `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}`;
+}
+
+// 오늘 날짜를 YYYYMMDD 형태의 숫자로 반환하는 헬퍼 함수 (축제 검색용)
+function getTodayYYYYMMDD(): number {
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const dd = String(today.getDate()).padStart(2, '0');
+  return Number(`${yyyy}${mm}${dd}`);
+}
+
 export async function syncTouristSpotsToDB() {
-  console.log('🔄 Tour API 다국어(한/영) 전체 데이터 수집 시작...');
+  console.log('🔄 Tour API 축제 데이터 수집 시작...');
   
   const supabaseAdmin = getSupabaseAdmin();
   
@@ -31,6 +50,9 @@ export async function syncTouristSpotsToDB() {
     return { success: false, message: '서버 관리자 키가 설정되지 않았습니다.' };
   }
 
+  /* ==========================================================
+     기존 관광지 다국어(한/영) 수집 및 병합 코드 (사용 안 함 - 주석 처리)
+     ==========================================================
   // 1. 한국어 데이터 수집 (무한 스크롤)
   let pageNoKo = 1;
   let allKorSpots: any[] = [];
@@ -56,7 +78,6 @@ export async function syncTouristSpotsToDB() {
   console.log(`✅ 영어 관광지 총 ${allEngSpots.length}개 수집 완료!`);
 
   // 3. 영어 데이터를 빠른 검색을 위해 Map 객체로 변환 
-  // 🌟 핵심 수정: contentid가 다르므로, 좌표(mapx_mapy)를 고유 키로 사용합니다.
   const engSpotsMap = new Map();
   allEngSpots.forEach(spot => {
     if (spot.mapx && spot.mapy) {
@@ -72,7 +93,6 @@ export async function syncTouristSpotsToDB() {
   const placesToInsert = allKorSpots
     .filter((spot) => spot.contentid && spot.contenttypeid && spot.title)
     .map((korSpot) => {
-      // 🌟 한국어 데이터의 좌표와 정확히 일치하는 영어 데이터 찾기
       const coordKey = `${korSpot.mapx}_${korSpot.mapy}`;
       const engSpot = (korSpot.mapx && korSpot.mapy) ? engSpotsMap.get(coordKey) : undefined;
 
@@ -80,9 +100,8 @@ export async function syncTouristSpotsToDB() {
         tour_api_content_id: korSpot.contentid,
         content_type_id: Number.parseInt(korSpot.contenttypeid, 10),
         name_ko: korSpot.title,
-        name_en: engSpot?.title || null, // 짝이 맞으면 영어 이름 병합
+        name_en: engSpot?.title || null,
         address: [korSpot.addr1, korSpot.addr2].filter(Boolean).join(' ') || null,
-        // 빈 문자열이 아닌 완벽한 null로 들어가도록 수정
         address_en: engSpot ? [engSpot.addr1, engSpot.addr2].filter(Boolean).join(' ') || null : null,
         latitude: korSpot.mapy ? Number.parseFloat(korSpot.mapy) : null,
         longitude: korSpot.mapx ? Number.parseFloat(korSpot.mapx) : null,
@@ -95,11 +114,57 @@ export async function syncTouristSpotsToDB() {
         raw_data: korSpot, 
       };
     });
+  ========================================================== */
 
-  // 5. Supabase에 Upsert (기존 데이터 덮어쓰기)
+  // 1. 축제 데이터 수집 (한국어 버전만 수집, 제공해주신 축제 스키마 기준)
+  const todayDateInt = getTodayYYYYMMDD();
+  let pageNoFest = 1;
+  let allFests: any[] = [];
+  
+  while (true) {
+    console.log(`📡 [축제 데이터 ${pageNoFest}페이지] 호출 중...`);
+    const fests = await fetchFestival(todayDateInt, 'kor', pageNoFest);
+    if (!fests || fests.length === 0) break;
+    allFests = allFests.concat(fests);
+    pageNoFest++;
+  }
+  console.log(`✅ 축제/행사 총 ${allFests.length}개 수집 완료!`);
+
+  const syncedAt = new Date().toISOString();
+
+  // 2. 제공된 축제 DB 스키마에 맞게 매핑
+  const festivalsToInsert = allFests
+    .filter((fest) => fest.contentid && fest.contenttypeid && fest.title)
+    .map((fest) => ({
+      tour_api_content_id: fest.contentid,
+      content_type_id: Number.parseInt(fest.contenttypeid, 10),
+      title: fest.title, // name_ko 가 아닌 title 로 변경됨
+      event_start_date: parseTourApiDate(fest.eventstartdate),
+      event_end_date: parseTourApiDate(fest.eventenddate),
+      address: fest.addr1 || null,
+      address_detail: fest.addr2 || null, // 배열 결합 없이 분리 저장
+      region_code: fest.areacode || null,
+      district_code: fest.sigungucode || null,
+      category_code: fest.cat3 || null,
+      latitude: fest.mapy ? Number.parseFloat(fest.mapy) : null,
+      longitude: fest.mapx ? Number.parseFloat(fest.mapx) : null,
+      phone: fest.tel || null,
+      homepage: null, // 목록 API에는 제공되지 않음 (디테일 API 필요)
+      overview: null, // 목록 API에는 제공되지 않음
+      first_image_url: fest.firstimage || null,
+      first_image_thumbnail_url: fest.firstimage2 || null,
+      source: 'TourAPI', // 출처 명시
+      source_created_at: parseTourApiTimestamp(fest.createdtime),
+      source_updated_at: parseTourApiTimestamp(fest.modifiedtime),
+      synced_at: syncedAt,
+      raw_data: fest,
+    }));
+
+  // 3. Supabase에 Upsert (새로운 축제 테이블에 적재)
+  // 🚨 주의: 테이블 이름이 다를 경우 'festivals' 부분을 실제 테이블명으로 변경하세요.
   const { data, error } = await supabaseAdmin
-    .from('places')
-    .upsert(placesToInsert, {
+    .from('events') 
+    .upsert(festivalsToInsert, {
       onConflict: 'tour_api_content_id',
     })
     .select('id');
@@ -109,8 +174,8 @@ export async function syncTouristSpotsToDB() {
     return { success: false, message: error.message };
   }
 
-  const skippedCount = allKorSpots.length - placesToInsert.length;
-  console.log(`🎉 한/영 다국어 관광지 ${data?.length || 0}개 데이터 DB 동기화 완료! (스킵된 불량 데이터: ${skippedCount}개)`);
+  const skippedCount = allFests.length - festivalsToInsert.length;
+  console.log(`🎉 축제/행사 ${data?.length || 0}개 데이터 DB 동기화 완료! (스킵된 불량 데이터: ${skippedCount}개)`);
   
   return {
     success: true,

@@ -1,13 +1,11 @@
 // 파일 위치: src/services/tour-api/event.ts
 // 파일 명: event.ts
 
-// 아직 미완성 일단은 무시 
-
 const KOR_BASE_URL = 'https://apis.data.go.kr/B551011/KorService2/searchFestival2';
-const ENG_BASE_URL = 'https://apis.data.go.kr/B551011/EngService2/searchFestival2'
+const ENG_BASE_URL = 'https://apis.data.go.kr/B551011/EngService2/searchFestival2';
 
-// 키워드 기반 검색
-export async function fetchKeyWord(word: string, lang: 'kor' | 'eng' = 'kor') {
+// 키워드 기반 검색 (pageNo 매개변수 추가)
+export async function fetchFestival(eventDate: number, lang: 'kor' | 'eng' = 'kor', pageNo: number = 1) {
   /* 받은 매개변수가 kor 이면 KOR_BASE_URL로 아니면 ENG_BASE_URL로 작업하라는 삼항연산자*/
   const baseUrl = lang === 'kor' ? KOR_BASE_URL : ENG_BASE_URL;
   //env 파일에서 api 키를 받아옴
@@ -24,10 +22,10 @@ export async function fetchKeyWord(word: string, lang: 'kor' | 'eng' = 'kor') {
     MobileApp: 'TravelWithMe',
     _type: 'json',
     numOfRows: '100',
-    pageNo: '1',
+    pageNo: pageNo.toString(), // 매개변수로 받은 pageNo 동적 적용
     arrange: 'A',
-    keyword: word, //파라미터로 받은 검색어를 적용 유후
-    lDongRegnCd: '44' //일단은 충남 일부만 검색
+    eventStartDate: eventDate.toString(), //파라미터로 받은 검색어를 적용
+    lDongRegnCd: '44' //충남 일부만 검색
   }).toString();
 
 
@@ -49,7 +47,7 @@ export async function fetchKeyWord(word: string, lang: 'kor' | 'eng' = 'kor') {
     const items = data?.response?.body?.items?.item || [];
     return items;
   } catch (error) {
-    console.error('Tour API 호출 에러:', error);
+    console.error(`[축제 ${pageNo}페이지] Tour API 호출 에러:`, error);
     return [];
   }
 }
