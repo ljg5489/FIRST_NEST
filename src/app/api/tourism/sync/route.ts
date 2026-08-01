@@ -1,9 +1,14 @@
-// 진규 코드
+// 파일 위치: src/app/api/tourism/sync/route.ts
+// 파일 명: route.ts
 
 import { timingSafeEqual } from 'node:crypto';
 import { NextResponse } from 'next/server';
 
-import { syncTouristSpotsToDB } from '../../../../services/supabase/sync';
+// 사용하지 않는 기존 동기화 함수 임포트 주석 처리 - DB에 직접 적재할 때 사용했던 함수
+// import { syncTouristSpotsToDB } from '../../../../services/supabase/sync';
+
+// 관계형 테이블 분배 함수 임포트
+import { syncRelationsFromRawData } from '../../../../services/supabase/sync-relations';
 
 function isAuthorized(request: Request) {
   const expectedSecret = process.env.SYNC_SECRET;
@@ -41,7 +46,11 @@ export async function POST(request: Request) {
   }
 
   try {
-    const result = await syncTouristSpotsToDB();
+    // 기존 데이터 수집 함수 실행 주석 처리
+    // const result = await syncTouristSpotsToDB();
+    
+    // 원본 데이터 기반 관계형 테이블 분배 함수 실행 sync-relations.ts 파일에 있는 함수 실행!!!!
+    const result = await syncRelationsFromRawData();
 
     return NextResponse.json(result, {
       status: result.success ? 200 : 502,
