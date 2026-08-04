@@ -1,0 +1,112 @@
+import type { Attraction, RecommendedCourse, TravelConditionOption } from "./types";
+
+export const travelConditionOptions: TravelConditionOption = {
+  nationalities: ["USA", "Japan", "Vietnam", "Korea"],
+  languages: ["English", "Japanese", "Vietnamese", "Korean"],
+  tripDays: ["1일", "2일", "3일"],
+  startRegions: ["공주", "부여", "보령", "서천", "태안", "청양"],
+  budgetTypes: ["1인 예산", "전체 예산"],
+  travelPaces: ["여유롭게", "보통", "많이 보기"],
+  transportOptions: ["대중교통", "택시", "렌터카", "도보 중심"],
+  interests: ["역사", "로컬 음식", "자연", "축제", "가족", "사진 명소"],
+};
+
+export const attractions: Attraction[] = [
+  {
+    id: "gongsanseong",
+    name: "공산성",
+    region: "공주",
+    category: "역사",
+    address: "충청남도 공주시 금성동",
+    summary: "백제의 역사와 공주의 대표 경관을 함께 볼 수 있는 관광지입니다.",
+    source: "Korea Tourism Organization TourAPI",
+    estimatedCost: 3000,
+    mapUrl: "https://map.kakao.com",
+  },
+  {
+    id: "royal-tombs",
+    name: "무령왕릉과 왕릉원",
+    region: "공주",
+    category: "역사",
+    address: "충청남도 공주시 왕릉로 37",
+    summary: "백제 문화유산을 중심으로 공주 여행의 역사 흐름을 이해할 수 있습니다.",
+    source: "Korea Tourism Organization TourAPI",
+    estimatedCost: 3000,
+    mapUrl: "https://map.kakao.com",
+  },
+  {
+    id: "gongju-market",
+    name: "공주 산성시장",
+    region: "공주",
+    category: "로컬 음식",
+    address: "충청남도 공주시 용당길 22",
+    summary: "지역 음식과 시장 분위기를 경험할 수 있는 로컬 여행지입니다.",
+    source: "Korea Tourism Organization TourAPI",
+    estimatedCost: 18000,
+    mapUrl: "https://map.kakao.com",
+  },
+  {
+    id: "busosanseong",
+    name: "부소산성",
+    region: "부여",
+    category: "역사",
+    address: "충청남도 부여군 부여읍 부소로 31",
+    summary: "부여 백제 여행의 중심이 되는 역사 관광지입니다.",
+    source: "Korea Tourism Organization TourAPI",
+    estimatedCost: 2000,
+    mapUrl: "https://map.kakao.com",
+  },
+  {
+    id: "gungnamji",
+    name: "궁남지",
+    region: "부여",
+    category: "자연",
+    address: "충청남도 부여군 부여읍 궁남로 52",
+    summary: "연못과 산책 동선이 좋아 사진 명소로 활용하기 좋은 장소입니다.",
+    source: "Korea Tourism Organization TourAPI",
+    estimatedCost: 0,
+    mapUrl: "https://map.kakao.com",
+  },
+  {
+    id: "national-ecology-center",
+    name: "국립생태원",
+    region: "서천",
+    category: "자연",
+    address: "충청남도 서천군 마서면 금강로 1210",
+    summary: "가족 여행과 자연 관찰 코스에 적합한 실내외 복합 관광지입니다.",
+    source: "Korea Tourism Organization TourAPI",
+    estimatedCost: 5000,
+    mapUrl: "https://map.kakao.com",
+  },
+];
+
+export const recommendedCourse: RecommendedCourse = {
+  id: "course-history-food-3d",
+  title: "공주-부여-서천 3일 코스",
+  conditionSummary: {
+    tripDays: "3일",
+    people: "2명",
+    budget: "1인 300,000원",
+    interests: "역사, 로컬 음식",
+  },
+  totalEstimatedCost: 560000,
+  perPersonEstimatedCost: 280000,
+  remainingBudget: 20000,
+  days: [
+    {
+      day: "Day 1",
+      region: "공주",
+      attractionIds: ["gongsanseong", "royal-tombs", "gongju-market"],
+    },
+    {
+      day: "Day 2",
+      region: "부여",
+      attractionIds: ["busosanseong", "gungnamji"],
+    },
+    {
+      day: "Day 3",
+      region: "서천",
+      attractionIds: ["national-ecology-center"],
+    },
+  ],
+};

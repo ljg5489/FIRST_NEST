@@ -1,0 +1,57 @@
+export type Interest =
+  | "역사"
+  | "로컬 음식"
+  | "자연"
+  | "축제"
+  | "가족"
+  | "사진 명소";
+
+export type TravelConditionOption = {
+  nationalities: string[];
+  languages: string[];
+  tripDays: string[];
+  startRegions: string[];
+  budgetTypes: string[];
+  travelPaces: string[];
+  transportOptions: string[];
+  interests: Interest[];
+};
+
+export type Attraction = {
+  id: string;
+  tourApiContentId?: string;
+  name: string;
+  nameEn?: string | null;
+  region: string;
+  category: string;
+  address: string;
+  addressEn?: string | null;
+  summary: string;
+  source: string;
+  estimatedCost: number;
+  mapUrl: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  imageUrl?: string;
+};
+
+export type ItineraryDay = {
+  day: string;
+  region: string;
+  attractionIds: string[];
+};
+
+export type RecommendedCourse = {
+  id: string;
+  title: string;
+  conditionSummary: {
+    tripDays: string;
+    people: string;
+    budget: string;
+    interests: string;
+  };
+  totalEstimatedCost: number;
+  perPersonEstimatedCost: number;
+  remainingBudget: number;
+  days: ItineraryDay[];
+};
