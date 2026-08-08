@@ -50,11 +50,15 @@ export async function getAttractions(selectedTags?: string[]) {
   // 최종 데이터 100개 제한 호출 (추후 프론트엔드에서 페이지네이션 처리 가능(페이지를 넘기면서 추가 호출 것))
   const { data, error } = await query.limit(100);
 
-  // 4. 결과가 비어있으면 비어있다고(빈 배열) 프론트엔드에 전달
-  if (error || !data || data.length === 0) {
-    if (error) console.error('[오류] 관광지 필터 호출 에러:', error.message);
+  // 4-1. DB 쿼리 실행 중 에러가 발생한 경우 (프론트에서 error.tsx로 잡을 수 있게 예외 발생)
+  if (error) {
+    console.error('[오류] 관광지 필터 호출 에러:', error.message);
+    throw new Error(`DB_FETCH_ERROR: ${error.message}`);
+  }
+
+  // 4-2. 결과가 비어있으면 비어있다고(빈 배열) 프론트엔드에 전달
+  if (!data || data.length === 0) {
     console.log('[안내] 해당 조건에 맞는 관광지 결과가 없습니다.');
-    
     // 프론트엔드가 "검색 결과가 없습니다"라는 화면을 띄울 수 있도록 빈 배열 전달
     return [];
   }
@@ -83,8 +87,14 @@ export async function getAttractionById(id: string) {
     .eq('id', id)
     .single();
 
-  // 데이터가 없으면  null을 반환
-  if (placeError || !placeData) {
+  // DB 서버 에러 처리 (데이터 0건일 때 발생하는 PGRST116 코드는 제외)
+  if (placeError && placeError.code !== 'PGRST116') {
+    console.error(`[오류] 관광지 상세 조회 DB 에러:`, placeError.message);
+    throw new Error(`DB_FETCH_ERROR: ${placeError.message}`);
+  }
+
+  // 데이터가 없으면 null을 반환
+  if (!placeData) {
     console.warn(`[경고] DB에 ID [${id}] 관광지가 없습니다. (null 반환)`);
     return null;
   }
@@ -109,6 +119,7 @@ export async function getAttractionById(id: string) {
 
   if (eventsError) {
     console.error('[오류] 연결된 주변 축제 호출 에러:', eventsError.message);
+    throw new Error(`DB_FETCH_ERROR: ${eventsError.message}`);
   }
 
   return {
@@ -137,7 +148,13 @@ export async function getRecommendedCourse() {
     .limit(1)
     .single();
 
-  if (error || !data) {
+  // DB 쿼리 실행 중 에러가 발생한 경우
+  if (error && error.code !== 'PGRST116') {
+    console.error('[오류] 추천 코스 DB 조회 에러:', error.message);
+    throw new Error(`DB_FETCH_ERROR: ${error.message}`);
+  }
+
+  if (!data) {
     console.warn('[경고] DB에 코스 데이터가 없습니다. Mock 데이터로 대체합니다.');
     return recommendedCourse;
   }
@@ -198,7 +215,14 @@ export async function getFestivals() {
     .gte('event_end_date', today)
     .order('event_start_date', { ascending: true });
 
-  if (error || !data || data.length === 0) {
+  // DB 통신 실패 시 에러 던짐
+  if (error) {
+    console.error('[오류] 진행 중인 축제 데이터 조회 에러:', error.message);
+    throw new Error(`DB_FETCH_ERROR: ${error.message}`);
+  }
+
+  // 정상 조회되었으나 데이터가 0건일 때
+  if (!data || data.length === 0) {
     console.warn('[경고] DB에 진행 중인 축제 데이터가 없습니다. (빈 배열 반환)');
     return [];
   }
