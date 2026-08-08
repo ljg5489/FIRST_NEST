@@ -6,35 +6,38 @@
 import { fetchChungnamTouristSpots } from '../../../services/tour-api/area';
 import { fetchDongCodes } from '../../../services/tour-api/dongcode'; 
 import { fetchKeyWord } from '../../../services/tour-api/keyword';
-// 🌟 새로 추가된 축제/행사 API 불러오기 
 import { fetchFestival } from '../../../services/tour-api/event'; 
 import KakaoMap from '../../../features/map/ui/KakaoMap'; 
+import SyncButton from './SyncButton'; // 버튼 컴포넌트 임포트
 
 export default async function ApiTestPage() {
-  // Promise.all을 사용해 API를 동시에 병렬로 호출 (fetchFestival 추가)
   const [spots, dongCodes, keywordSpots, festivals] = await Promise.all([
     fetchChungnamTouristSpots('kor'),
     fetchDongCodes(),
     fetchKeyWord('순대', 'kor'),
-    fetchFestival(20260801, 'kor') // 테스트용 임시 date 값으로 2026년 8월 1일을 사용
+    fetchFestival(20260801, 'kor') 
   ]);
 
   return (
     <main className="p-8 max-w-6xl mx-auto bg-gray-50 min-h-screen">
-      <header className="mb-10">
-        <h1 className="text-3xl font-bold text-gray-800">🛠️ API 데이터 테스트 랩 (Admin)</h1>
-        <p className="mt-2 text-gray-600">DB 적재 전 Tour API 원본 데이터를 검증하고 지도와 연동을 테스트하는 공간입니다.</p>
+      <header className="mb-10 flex justify-between items-end">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-800">API 데이터 테스트 랩 (Admin)</h1>
+          <p className="mt-2 text-gray-600">DB 적재 전 Tour API 원본 데이터를 검증하고 지도와 연동을 테스트하는 공간입니다.</p>
+        </div>
+        {/* 우측에 동기화 버튼 배치 */}
+        <SyncButton />
       </header>
 
       {/* 🗺️ 카카오맵 섹션 */}
       <section className="mb-12 bg-white p-6 rounded-lg shadow-sm border">
-        <h2 className="text-xl font-semibold mb-4">🗺️ 원본 API 관광지 지도 뷰</h2>
+        <h2 className="text-xl font-semibold mb-4">원본 API 관광지 지도 뷰</h2>
         <KakaoMap places={spots} />
       </section>
 
       {/* 지역기반 관광지 목록 섹션 */}
       <section className="mb-12 bg-white p-6 rounded-lg shadow-sm border">
-        <h2 className="text-xl font-semibold mb-4">📍 충남 추천 관광지 목록 (API 원본)</h2>
+        <h2 className="text-xl font-semibold mb-4">충남 추천 관광지 목록 (API 원본)</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {spots.length > 0 ? (
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -63,9 +66,9 @@ export default async function ApiTestPage() {
         </div>
       </section>
 
-      {/* 🌟 새로 추가된 축제/행사 기반 관광지 목록 섹션 */}
+      {/* 새로 추가된 축제/행사 기반 관광지 목록 섹션 */}
       <section className="mb-12 bg-white p-6 rounded-lg shadow-sm border">
-        <h2 className="text-xl font-semibold mb-4">🎉 충남 행사/축제 목록 (API 원본 테스트)</h2>
+        <h2 className="text-xl font-semibold mb-4">충남 행사/축제 목록 (API 원본 테스트)</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {festivals && festivals.length > 0 ? (
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -92,7 +95,7 @@ export default async function ApiTestPage() {
                   {/* 행사 날짜 출력 부분 */}
                   {(festival.eventstartdate || festival.eventenddate) && (
                     <div className="mt-3 pt-3 border-t border-gray-100 flex items-center text-xs font-semibold text-blue-600">
-                      📅 {festival.eventstartdate} ~ {festival.eventenddate}
+                      {festival.eventstartdate} ~ {festival.eventenddate}
                     </div>
                   )}
                 </div>
@@ -106,7 +109,7 @@ export default async function ApiTestPage() {
 
       {/* 키워드 기반 관광지 목록 섹션 */}
       <section className="mb-12 bg-white p-6 rounded-lg shadow-sm border">
-        <h2 className="text-xl font-semibold mb-4">📍 키워드 관광지 목록 (API 원본)</h2>
+        <h2 className="text-xl font-semibold mb-4">키워드 관광지 목록 (API 원본)</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {keywordSpots.length > 0 ? (
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -137,7 +140,7 @@ export default async function ApiTestPage() {
 
       {/* 동/지역 코드 확인 섹션 */}
       <section className="bg-white p-6 rounded-lg shadow-sm border">
-        <h2 className="text-xl font-semibold mb-4">🗺️ 행정동 코드 목록 (디버깅 확인용)</h2>
+        <h2 className="text-xl font-semibold mb-4">행정동 코드 목록 (디버깅 확인용)</h2>
         <div className="flex flex-col gap-2 max-h-96 overflow-y-auto">
           {dongCodes.length > 0 ? (
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
