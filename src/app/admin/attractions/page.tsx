@@ -4,6 +4,8 @@
 import React from 'react';
 import { getAttractions, getFestivals } from '@/lib/data';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminAttractionsPage() {
   // 백엔드 함수 병렬 호출 (Server Component)
   const [attractions, festivals] = await Promise.all([

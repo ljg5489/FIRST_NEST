@@ -1,5 +1,7 @@
 import { getRecommendedCourseWithAttractions } from "@/lib/data";
 
+export const dynamic = "force-dynamic";
+
 export default async function MapPage() {
   const course = await getRecommendedCourseWithAttractions();
   const route = course.days.flatMap((day) => day.attractions);

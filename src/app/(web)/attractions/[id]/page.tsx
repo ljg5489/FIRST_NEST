@@ -6,6 +6,8 @@ type AttractionDetailPageProps = {
   }>;
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function AttractionDetailPage({ params }: AttractionDetailPageProps) {
   const { id } = await params;
   const attraction = await getAttractionById(id);

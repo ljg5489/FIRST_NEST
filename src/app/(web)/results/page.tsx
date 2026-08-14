@@ -31,6 +31,8 @@ function getMultiParam(
   return value ?? fallback;
 }
 
+export const dynamic = "force-dynamic";
+
 export default async function ResultsPage({ searchParams }: ResultsPageProps) {
   const params = await searchParams;
   const course = await getRecommendedCourseWithAttractions();

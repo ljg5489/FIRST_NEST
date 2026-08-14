@@ -5,6 +5,8 @@ import React from 'react';
 import { getAttractions, getFestivals } from '@/lib/data';
 import MapClient from './MapClient';
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminMapPage() {
   // 백엔드 데이터(관광지, 축제) 병렬 호출
   const [attractions, festivals] = await Promise.all([

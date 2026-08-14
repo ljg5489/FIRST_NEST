@@ -2,7 +2,6 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import type { PlaceListItem } from '../../tourism/server/queries';
 
 declare global {
   interface Window {
@@ -11,8 +10,17 @@ declare global {
   }
 }
 
+interface KakaoMapPlace {
+  name_ko?: string;
+  title?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  mapx?: string;
+  mapy?: string;
+}
+
 interface KakaoMapProps {
-  places?: PlaceListItem[];
+  places?: KakaoMapPlace[];
 }
 
 export default function KakaoMap({ places = [] }: KakaoMapProps) {
@@ -72,15 +80,18 @@ export default function KakaoMap({ places = [] }: KakaoMapProps) {
   useEffect(() => {
     if (mapInstance && places.length > 0) {
       const markers = places.flatMap((place) => {
-        if (place.latitude !== null && place.longitude !== null) {
+        const latitude = place.latitude ?? Number(place.mapy);
+        const longitude = place.longitude ?? Number(place.mapx);
+
+        if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
           const markerPosition = new window.kakao.maps.LatLng(
-            place.latitude,
-            place.longitude,
+            latitude,
+            longitude,
           );
 
           const marker = new window.kakao.maps.Marker({
             position: markerPosition,
-            title: place.name_ko,
+            title: place.name_ko ?? place.title ?? '',
           });
 
           marker.setMap(mapInstance);

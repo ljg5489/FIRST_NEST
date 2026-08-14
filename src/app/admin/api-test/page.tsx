@@ -10,6 +10,8 @@ import { fetchFestival } from '../../../services/tour-api/event';
 import KakaoMap from '../../../features/map/ui/KakaoMap'; 
 import SyncButton from './SyncButton'; // 버튼 컴포넌트 임포트
 
+export const dynamic = 'force-dynamic';
+
 export default async function ApiTestPage() {
   const [spots, dongCodes, keywordSpots, festivals] = await Promise.all([
     fetchChungnamTouristSpots('kor'),
