@@ -117,3 +117,67 @@ export async function generateCourseStory(
     return "An error occurred while generating the course explanation, but this route is carefully selected based on your preferences. 아~~~~~~~~~~~~~~~~~~ 에러에러 삐용삐용 왜애애애애애애애앵 서버 창 보셈 ";
   }
 }
+
+
+/**
+ * [관리자 전용] 프롬프트 랩(Prompt Lab)에서 실시간으로 프롬프트를 테스트하기 위한 함수
+ * @param prompt 사용자가 직접 작성한 프롬프트 문자열
+ */
+export async function testCustomPrompt(prompt: string) {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY가 없습니다.');
+  }
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.7,
+      max_tokens: 800, // 넉넉하게 설정
+    });
+
+    return response.choices[0].message.content?.trim() || "";
+  } catch (error: any) {
+    console.error('[오류] 프롬프트 테스트 실패:', error);
+    throw new Error(error.message);
+  }
+}
+
+/**
+ * [관리자 전용] 관광지 한국어 이름과 주소를 영문으로 자동 번역합니다.
+ * @param nameKo 한국어 이름
+ * @param addressKo 한국어 주소
+ */
+export async function translatePlaceInfo(nameKo: string, addressKo: string | null) {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY가 없습니다.');
+  }
+
+  // JSON 형태로 확실히 받기 위한 프롬프트
+  const prompt = `
+    You are an expert Korean to English translator for a tourism platform.
+    Translate the following Korean tourist attraction name and address into natural English.
+    
+    Korean Name: ${nameKo}
+    Korean Address: ${addressKo || 'N/A'}
+
+    Return ONLY a valid JSON object with EXACTLY these two keys:
+    - "name_en": The translated English name.
+    - "address_en": The translated English address (leave as empty string if N/A).
+  `;
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.2, // 번역은 창의성보다 정확성이 중요하므로 낮게 설정
+      response_format: { type: "json_object" }, // JSON 출력 강제
+    });
+
+    const content = response.choices[0].message.content || "{}";
+    return JSON.parse(content);
+  } catch (error: any) {
+    console.error('[오류] AI 자동 번역 실패:', error);
+    throw new Error(error.message);
+  }
+}

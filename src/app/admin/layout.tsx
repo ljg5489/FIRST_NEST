@@ -38,12 +38,18 @@ export default function AdminLayout({
             </li>
             <li>
               <Link href="/admin/travelers" className="block px-3 py-2.5 rounded-lg hover:bg-[#21232B] hover:text-white transition-colors">
-                Travelers <span className="ml-2 text-[9px] bg-[#CEFF00]/10 text-[#CEFF00] px-1.5 py-0.5 rounded border border-[#CEFF00]/20">AI</span>
+                Travelers
               </Link>
             </li>
             <li>
               <Link href="/admin/conditions" className="block px-3 py-2.5 rounded-lg hover:bg-[#21232B] hover:text-white transition-colors">
                 Conditions
+              </Link>
+            </li>
+            {/* 💡 새로 추가된 프롬프트 랩 메뉴 */}
+            <li>
+              <Link href="/admin/prompt-test" className="block px-3 py-2.5 rounded-lg hover:bg-[#21232B] hover:text-[#3EAEFF] transition-colors">
+                Prompt Lab <span className="ml-2 text-[9px] bg-[#3EAEFF]/10 text-[#3EAEFF] px-1.5 py-0.5 rounded border border-[#3EAEFF]/20">AI</span>
               </Link>
             </li>
           </ul>
@@ -58,8 +64,8 @@ export default function AdminLayout({
               </Link>
             </li>
             <li>
-              <Link href="/admin/localization" className="block px-3 py-2.5 rounded-lg hover:bg-[#21232B] hover:text-[#CEFF00] transition-colors">
-                Localization <span className="ml-2 text-[9px] bg-[#FF4C4C]/10 text-[#FF4C4C] px-1.5 py-0.5 rounded border border-[#FF4C4C]/20">New</span>
+              <Link href="/admin/localization" className="block px-3 py-2.5 rounded-lg hover:bg-[#21232B] hover:text-white transition-colors">
+                Localization 
               </Link>
             </li>
             <li>
@@ -83,7 +89,6 @@ export default function AdminLayout({
 
       {/* Main Content Area */}
       <div className="flex-1 w-full max-w-full overflow-x-hidden">
-        {/* 개별 페이지들이 자체적인 Header를 가지고 있으므로 여기서는 감싸기만 합니다 */}
         {children}
       </div>
     </div>
