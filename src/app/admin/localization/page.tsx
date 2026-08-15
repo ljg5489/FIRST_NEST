@@ -3,267 +3,273 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { supabase } from '@/services/supabase/client'; 
 
+// 번역 완료된 항목의 로그 타입 정의
+interface TranslationLog {
+  id: string;
+  name_ko: string;
+  name_en: string;
+  address_ko: string | null;
+  address_en: string | null;
+  timestamp: string;
+}
+
 export default function AdminLocalizationPage() {
-  const [currentPlace, setCurrentPlace] = useState<any>(null);
-  const [formData, setFormData] = useState({ name_en: '', address_en: '' });
+  const [isAutoRunning, setIsAutoRunning] = useState(false);
+  const [isFinished, setIsFinished] = useState(false);
   
-  const [isLoading, setIsLoading] = useState(true);
-  const [isTranslating, setIsTranslating] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [currentJob, setCurrentJob] = useState<any>(null); // 현재 처리 중인 관광지
+  const [logs, setLogs] = useState<TranslationLog[]>([]); // 처리 완료된 리스트
+  
+  // 비동기 루프 내에서 최신 상태를 참조하기 위한 Ref
+  const isRunningRef = useRef(false);
 
-  useEffect(() => {
-    fetchNextPlace();
-  }, []);
+  // 자동 번역 루프 함수
+  const processNextTranslation = async () => {
+    if (!isRunningRef.current) return; // 중지 버튼을 누르면 루프 탈출
 
-  const fetchNextPlace = async () => {
-    setIsLoading(true);
-    setSuccessMsg(null);
-    setFormData({ name_en: '', address_en: '' });
-    
     try {
+      // 1. 번역이 필요한 데이터 1개 조회
       const { data, error } = await supabase
         .from('places')
-        .select('id, name_ko, name_en, address, address_en, description')
+        .select('id, name_ko, name_en, address, address_en')
         .is('name_en', null)
         .order('id', { ascending: true })
         .limit(1)
         .single();
 
-      if (error && error.code !== 'PGRST116') {
-        console.error('조회 에러:', error);
+      // 남은 데이터가 없는 경우 (모두 완료)
+      if (error && error.code === 'PGRST116') {
+        setIsFinished(true);
+        setIsAutoRunning(false);
+        isRunningRef.current = false;
+        setCurrentJob(null);
+        return;
       }
-      
-      setCurrentPlace(data || null);
 
-      if (data) {
-        handleAutoTranslate(data.name_ko, data.address);
-      }
+      if (!data) return;
 
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      // 현재 작업 중인 데이터 화면에 표시
+      setCurrentJob({ ...data, status: 'translating' });
 
-  const handleAutoTranslate = async (nameKo: string, addressKo: string | null) => {
-    setIsTranslating(true);
-    try {
-      const response = await fetch('/api/admin/translate', {
+      // 2. AI 자동 번역 호출
+      const translateRes = await fetch('/api/admin/translate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name_ko: nameKo, address: addressKo || '주소 없음' }),
+        body: JSON.stringify({ name_ko: data.name_ko, address: data.address || '주소 없음' }),
       });
 
-      if (response.ok) {
-        const { name_en, address_en } = await response.json();
-        setFormData({ 
-          name_en: name_en || '', 
-          // AI가 'N/A'나 '주소 없음'으로 번역했을 경우 빈 칸으로 처리
-          address_en: (address_en && address_en !== 'N/A' && address_en !== 'None') ? address_en : '' 
-        });
-      }
-    } catch (error) {
-      console.error('AI 번역 실패:', error);
-    } finally {
-      setIsTranslating(false);
-    }
-  };
+      if (!translateRes.ok) throw new Error('AI 번역 통신 에러');
+      
+      const { name_en, address_en } = await translateRes.json();
+      const finalAddressEn = (address_en && address_en !== 'N/A' && address_en !== 'None') ? address_en : null;
 
-  const handleSaveAndNext = async () => {
-    if (!currentPlace) return;
-    if (!formData.name_en.trim()) {
-      alert('영문 이름(English Name)은 필수 항목입니다.');
-      return;
-    }
+      setCurrentJob({ ...data, status: 'saving', name_en, address_en: finalAddressEn });
 
-    setIsSaving(true);
-    try {
-      const response = await fetch('/api/places/update', {
+      // 3. DB 업데이트
+      const updateRes = await fetch('/api/places/update', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          id: currentPlace.id,
-          name_en: formData.name_en,
-          address_en: formData.address_en
+          id: data.id,
+          name_en: name_en,
+          address_en: finalAddressEn
         })
       });
 
-      if (!response.ok) throw new Error('API 업데이트 실패');
+      if (!updateRes.ok) throw new Error('DB 업데이트 에러');
 
-      setSuccessMsg(`[${currentPlace.name_ko}] 저장 완료!`);
+      // 4. 완료 로그 추가 (배열 맨 앞에 추가하여 최신순 정렬)
+      const newLog: TranslationLog = {
+        id: data.id,
+        name_ko: data.name_ko,
+        name_en: name_en,
+        address_ko: data.address,
+        address_en: finalAddressEn,
+        timestamp: new Date().toLocaleTimeString(),
+      };
       
-      setTimeout(() => {
-        fetchNextPlace();
-      }, 1000);
+      setLogs((prev) => [newLog, ...prev]);
+
+      // 5. 서버 API Rate Limit 방지를 위해 1초 대기 후 다음 작업 실행
+      if (isRunningRef.current) {
+        setTimeout(() => {
+          processNextTranslation();
+        }, 1000);
+      }
 
     } catch (error) {
-      console.error(error);
-      alert('저장 중 오류가 발생했습니다.');
-    } finally {
-      setIsSaving(false);
+      console.error('자동화 루프 에러:', error);
+      // 에러 발생 시 자동화 일시 정지
+      setIsAutoRunning(false);
+      isRunningRef.current = false;
+      alert('자동 번역 중 에러가 발생하여 일시 정지되었습니다. 콘솔을 확인해주세요.');
     }
+  };
+
+  // 시작 버튼 핸들러
+  const handleStart = () => {
+    setIsAutoRunning(true);
+    isRunningRef.current = true;
+    processNextTranslation();
+  };
+
+  // 정지 버튼 핸들러
+  const handleStop = () => {
+    setIsAutoRunning(false);
+    isRunningRef.current = false;
+    setCurrentJob(null);
   };
 
   return (
     <main className="min-h-screen bg-[#14151A] text-[#E0E2E8] pb-20 font-sans selection:bg-[#CEFF00] selection:text-black">
+      
+      {/* Header */}
       <header className="px-8 py-10 border-b border-[#2C2E38] bg-[#1A1C23]">
         <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
             <div className="flex items-center gap-3 mb-2">
               <span className="w-2 h-2 rounded-full bg-[#CEFF00] animate-pulse shadow-[0_0_8px_#CEFF00]"></span>
-              <span className="text-[11px] font-bold text-[#A0A5B5] uppercase tracking-widest">Data Enrichment · AI Localization</span>
+              <span className="text-[11px] font-bold text-[#A0A5B5] uppercase tracking-widest">Automation · AI Batch</span>
             </div>
             <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white mb-2">
-              AI Translation Hub
+              Auto Translation Bot
             </h1>
             <p className="text-[#848A9C] text-sm font-medium">
-              AI가 번역 초안을 생성하면, 관리자가 검토(Human-in-the-loop) 후 저장합니다.
+              결측치(영문 데이터 누락)를 찾아 AI가 자동으로 번역하고 DB에 채워 넣습니다.
             </p>
+          </div>
+          
+          <div className="flex gap-4">
+            <div className="bg-[#21232B] border border-[#2C2E38] rounded-xl px-5 py-3 flex flex-col justify-center text-right">
+              <span className="text-[10px] text-[#848A9C] uppercase font-bold mb-1">Items Processed</span>
+              <span className="text-xl font-bold text-[#CEFF00]">{logs.length}</span>
+            </div>
           </div>
         </div>
       </header>
 
-      <div className="max-w-[1400px] mx-auto px-8 mt-8">
-        
-        {successMsg && (
-          <div className="mb-6 bg-[#CEFF00]/10 border border-[#CEFF00]/30 text-[#CEFF00] px-4 py-3 rounded-xl text-sm font-bold animate-in fade-in slide-in-from-top-4 flex items-center justify-between">
-            <span>✅ {successMsg}</span>
-          </div>
-        )}
+      <div className="max-w-[1400px] mx-auto px-8 mt-8 space-y-6">
 
-        {isLoading ? (
-          <div className="flex flex-col items-center justify-center h-[500px] bg-[#1A1C23] border border-[#2C2E38] rounded-2xl">
-            <svg className="animate-spin h-8 w-8 text-[#CEFF00] mb-4" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            <p className="text-[#848A9C] text-sm font-bold">다음 항목을 찾고 있습니다...</p>
+        {/* ==============================
+            Top: Control Panel & Status
+        ============================== */}
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          
+          {/* Action Card */}
+          <div className="bg-[#1A1C23] border border-[#2C2E38] rounded-2xl p-6 flex flex-col justify-center">
+            <h2 className="text-sm font-bold text-white mb-4">제어 패널 (Control Panel)</h2>
+            {isFinished ? (
+              <div className="bg-[#CEFF00]/10 border border-[#CEFF00]/30 text-[#CEFF00] font-bold p-4 rounded-xl text-center">
+                🎉 모든 데이터 번역 완료!
+              </div>
+            ) : isAutoRunning ? (
+              <button 
+                onClick={handleStop}
+                className="w-full bg-[#FF4C4C]/10 border border-[#FF4C4C]/50 text-[#FF4C4C] hover:bg-[#FF4C4C]/20 font-bold py-4 rounded-xl transition-colors flex items-center justify-center gap-2"
+              >
+                <span className="w-2 h-2 bg-[#FF4C4C] rounded-full animate-pulse"></span>
+                자동화 중지 (Stop)
+              </button>
+            ) : (
+              <button 
+                onClick={handleStart}
+                className="w-full bg-[#CEFF00] text-black font-bold py-4 rounded-xl hover:bg-[#b5e600] transition-transform hover:scale-[1.02] flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(206,255,0,0.2)]"
+              >
+                ▶️ 자동 번역 시작 (Start Batch)
+              </button>
+            )}
           </div>
-        ) : !currentPlace ? (
-          <div className="flex flex-col items-center justify-center h-[500px] bg-[#1A1C23] border border-[#2C2E38] rounded-2xl">
-            <div className="text-4xl mb-4">🎉</div>
-            <h2 className="text-xl font-bold text-white mb-2">모든 데이터 번역 완료!</h2>
-            <p className="text-[#848A9C] text-sm">현재 DB에 영문 이름이 누락된 관광지가 없습니다.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 relative">
+
+          {/* Current Job Status Card */}
+          <div className="md:col-span-2 bg-[#1A1C23] border border-[#2C2E38] rounded-2xl p-6 relative overflow-hidden">
+            <h2 className="text-sm font-bold text-white mb-4 flex items-center gap-2">
+              실시간 작업 상태
+              {isAutoRunning && <span className="text-[10px] bg-[#3EAEFF]/10 text-[#3EAEFF] px-2 py-0.5 rounded uppercase border border-[#3EAEFF]/20 animate-pulse">Running</span>}
+            </h2>
             
-            {/* LEFT: 한국어 원본 (컬럼 비율 5) */}
-            <section className={`xl:col-span-5 bg-[#1A1C23] border border-[#2C2E38] rounded-2xl p-8 transition-opacity ${isSaving || successMsg ? 'opacity-50' : ''}`}>
-              <div className="flex items-center justify-between mb-8">
-                <h2 className="text-sm font-bold text-white flex items-center gap-2">
-                  🇰🇷 Original Data
-                  <span className="text-[10px] bg-[#2C2E38] text-[#A0A5B5] px-2 py-0.5 rounded uppercase">Read Only</span>
-                </h2>
-              </div>
-
-              <div className="space-y-6">
+            {currentJob ? (
+              <div className="space-y-4">
                 <div>
-                  <label className="block text-[10px] text-[#848A9C] font-bold uppercase tracking-wider mb-2">이름 (Name)</label>
-                  <div className="bg-[#21232B] p-4 rounded-xl border border-[#2C2E38] text-white font-bold text-lg">
-                    {currentPlace.name_ko}
-                  </div>
+                  <span className="text-[10px] text-[#848A9C] font-bold">대상 원문:</span>
+                  <p className="text-white font-bold text-lg">{currentJob.name_ko}</p>
                 </div>
                 <div>
-                  <label className="block text-[10px] text-[#848A9C] font-bold uppercase tracking-wider mb-2">주소 (Address)</label>
-                  <div className="bg-[#21232B] p-4 rounded-xl border border-[#2C2E38] text-[#A0A5B5] text-sm">
-                    {currentPlace.address || '주소 정보 없음'}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-[10px] text-[#848A9C] font-bold uppercase tracking-wider mb-2">설명 (Description)</label>
-                  <div className="bg-[#21232B] p-4 rounded-xl border border-[#2C2E38] text-[#848A9C] text-xs leading-relaxed max-h-48 overflow-y-auto custom-scrollbar">
-                    {currentPlace.description || '설명 데이터가 없습니다.'}
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* RIGHT: 영문 입력 폼 (컬럼 비율 7) */}
-            <section className={`xl:col-span-7 bg-[#21232B] border ${formData.name_en ? 'border-[#3EAEFF]/50 shadow-[0_0_20px_rgba(62,174,255,0.05)]' : 'border-[#2C2E38]'} rounded-2xl p-8 relative transition-all duration-500 ${isSaving || successMsg ? 'opacity-50 pointer-events-none' : ''}`}>
-              <div className="flex items-center justify-between mb-8">
-                <h2 className="text-sm font-bold text-white flex items-center gap-2">
-                  🇺🇸 Review & Translate
-                  {isTranslating ? (
-                    <span className="text-[10px] bg-[#3EAEFF]/10 text-[#3EAEFF] px-2 py-0.5 rounded uppercase border border-[#3EAEFF]/20 flex items-center gap-1 animate-pulse">
-                      <span className="w-1 h-1 bg-[#3EAEFF] rounded-full"></span> AI Generating...
-                    </span>
-                  ) : formData.name_en ? (
-                    <span className="text-[10px] bg-[#3EAEFF]/10 text-[#3EAEFF] px-2 py-0.5 rounded uppercase border border-[#3EAEFF]/20 flex items-center gap-1">
-                      🤖 AI Suggested
-                    </span>
-                  ) : null}
-                </h2>
-              </div>
-
-              <div className="space-y-8">
-                {/* 이름 입력 영역 */}
-                <div className="relative">
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-[10px] text-[#848A9C] font-bold uppercase tracking-wider">
-                      English Name <span className="text-[#FF4C4C]">*</span>
-                    </label>
-                  </div>
-                  {/* 💡 입력창 바로 위에 원본 텍스트를 작게 표시하여 직관적인 비교 가능 */}
-                  <p className="text-xs text-[#5C657D] mb-2 font-medium bg-[#1A1C23] p-2 rounded-lg border border-[#2C2E38]">
-                    <span className="font-bold text-[#848A9C]">원문:</span> {currentPlace.name_ko}
-                  </p>
-                  <input
-                    type="text"
-                    value={formData.name_en}
-                    onChange={(e) => setFormData({ ...formData, name_en: e.target.value })}
-                    disabled={isTranslating}
-                    placeholder="AI가 번역을 생성 중입니다..."
-                    className={`w-full bg-[#1A1C23] border ${isTranslating ? 'border-[#3EAEFF] animate-pulse' : 'border-[#2C2E38]'} rounded-xl px-4 py-4 text-white font-bold focus:outline-none focus:border-[#CEFF00] transition-colors`}
-                  />
-                </div>
-
-                {/* 주소 입력 영역 */}
-                <div className="relative">
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-[10px] text-[#848A9C] font-bold uppercase tracking-wider">
-                      English Address (Optional)
-                    </label>
-                  </div>
-                  {/* 💡 주소도 원문을 바로 위에 띄워줍니다 */}
-                  <p className="text-xs text-[#5C657D] mb-2 font-medium bg-[#1A1C23] p-2 rounded-lg border border-[#2C2E38]">
-                    <span className="font-bold text-[#848A9C]">원문:</span> {currentPlace.address || '주소 데이터 없음'}
-                  </p>
-                  <input
-                    type="text"
-                    value={formData.address_en}
-                    onChange={(e) => setFormData({ ...formData, address_en: e.target.value })}
-                    disabled={isTranslating}
-                    placeholder={currentPlace.address ? "AI가 주소를 번역 중입니다..." : "원본 주소가 없어 빈 칸으로 남깁니다."}
-                    className={`w-full bg-[#1A1C23] border ${isTranslating ? 'border-[#3EAEFF] animate-pulse' : 'border-[#2C2E38]'} rounded-xl px-4 py-4 text-[#A0A5B5] text-sm focus:outline-none focus:border-[#CEFF00] transition-colors`}
-                  />
-                </div>
-              </div>
-
-              {/* Action Button */}
-              <div className="mt-12">
-                <button
-                  onClick={handleSaveAndNext}
-                  disabled={isSaving || isTranslating}
-                  className="w-full bg-[#CEFF00] text-black font-bold py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-[#b5e600] transition-all hover:scale-[1.01] shadow-[0_4px_20px_rgba(206,255,0,0.15)] disabled:opacity-50 disabled:hover:scale-100"
-                >
-                  {isSaving ? 'Saving to DB...' : 'Confirm & Load Next'}
-                  {!isSaving && !isTranslating && (
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-5 h-5">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
-                    </svg>
+                  <span className="text-[10px] text-[#848A9C] font-bold">작업 진행:</span>
+                  {currentJob.status === 'translating' ? (
+                    <p className="text-[#3EAEFF] font-mono text-sm animate-pulse flex items-center gap-2 mt-1">
+                      <svg className="animate-spin h-4 w-4 text-[#3EAEFF]" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      OpenAI 번역 중...
+                    </p>
+                  ) : (
+                    <p className="text-[#CEFF00] font-mono text-sm mt-1 flex items-center gap-2">
+                      <span className="text-lg">✓</span> DB 저장 중...
+                    </p>
                   )}
-                </button>
+                </div>
               </div>
-            </section>
-
+            ) : (
+              <div className="h-full min-h-[100px] flex items-center justify-center text-[#5C657D] text-sm">
+                대기 중 (시작 버튼을 눌러주세요)
+              </div>
+            )}
           </div>
-        )}
+        </section>
+
+        {/* ==============================
+            Bottom: Updated Logs List
+        ============================== */}
+        <section className="bg-[#1A1C23] border border-[#2C2E38] rounded-2xl overflow-hidden flex flex-col h-[50vh]">
+          <div className="flex items-center justify-between p-6 border-b border-[#2C2E38] bg-[#21232B]">
+            <h2 className="text-sm font-bold text-white">✅ 변경 이력 (Translation Logs)</h2>
+            <span className="text-[10px] text-[#848A9C]">최신순으로 표시됩니다.</span>
+          </div>
+
+          <div className="flex-1 overflow-y-auto custom-scrollbar">
+            {logs.length === 0 ? (
+              <div className="flex items-center justify-center h-full text-[#5C657D] text-sm">
+                아직 처리된 데이터가 없습니다.
+              </div>
+            ) : (
+              <table className="w-full text-left text-sm">
+                <thead className="bg-[#1A1C23] text-[#848A9C] sticky top-0 border-b border-[#2C2E38] z-10">
+                  <tr>
+                    <th className="px-6 py-4 font-bold w-[100px]">Time</th>
+                    <th className="px-6 py-4 font-bold w-[30%]">Korean Original</th>
+                    <th className="px-6 py-4 font-bold w-[30%]">English Translated</th>
+                    <th className="px-6 py-4 font-bold text-right">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#2C2E38]">
+                  {logs.map((log, idx) => (
+                    <tr key={idx} className="hover:bg-[#21232B] transition-colors">
+                      <td className="px-6 py-4 text-[#5C657D] font-mono text-xs">{log.timestamp}</td>
+                      <td className="px-6 py-4">
+                        <div className="font-bold text-white mb-1">{log.name_ko}</div>
+                        <div className="text-[10px] text-[#A0A5B5] truncate max-w-[250px]">{log.address_ko || '-'}</div>
+                      </td>
+                      <td className="px-6 py-4 border-l border-[#2C2E38]/50 bg-[#21232B]/30">
+                        <div className="font-bold text-[#CEFF00] mb-1">{log.name_en}</div>
+                        <div className="text-[10px] text-[#A0A5B5] truncate max-w-[250px]">{log.address_en || '-'}</div>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <span className="inline-flex items-center px-2 py-1 rounded bg-[#CEFF00]/10 text-[#CEFF00] text-[10px] font-bold">
+                          Updated
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </section>
+
       </div>
     </main>
   );
