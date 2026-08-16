@@ -78,6 +78,11 @@ export default function AdminLayout({
                 API Test
               </Link>
             </li>
+            <li>
+              <Link href="/admin/data-editor" className="block px-3 py-2.5 rounded-lg hover:bg-[#21232B] hover:text-[#FF4C4C] transition-colors">
+                Data Editor <span className="ml-2 text-[9px] bg-[#FF4C4C]/10 text-[#FF4C4C] px-1.5 py-0.5 rounded border border-[#FF4C4C]/20">Missing</span>
+              </Link>
+            </li>
           </ul>
         </nav>
         
