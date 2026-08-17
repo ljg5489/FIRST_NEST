@@ -3,3 +3,85 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --background: #f5f7f2;
+  --foreground: #17211b;
+  --muted: #5d675f;
+  --line: #dce2d7;
+  --surface: #ffffff;
+  --forest: #174d3c;
+  --sea: #2f7f8f;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  letter-spacing: 0;
+  min-width: 320px;
+  overflow-x: hidden;
+  padding-bottom: 76px;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+@layer components {
+  .page-shell {
+    @apply mx-auto w-full max-w-[1180px] px-4 py-8 sm:px-8 sm:py-10;
+  }
+
+  .hairline-card {
+    @apply border border-[#dce2d7] bg-white/75 shadow-[0_8px_24px_rgba(23,33,27,0.04)];
+  }
+
+  .soft-card {
+    @apply border border-[#dce2d7] bg-white shadow-[0_10px_36px_rgba(23,33,27,0.06)];
+  }
+
+  .primary-button {
+    @apply inline-flex min-h-11 items-center justify-center rounded-md bg-[#174d3c] px-5 py-3 text-sm font-black text-white transition hover:bg-[#236952];
+  }
+
+  .field-control {
+    @apply min-h-11 w-full rounded-md border border-[#d9ded4] bg-white px-3 py-2 text-sm font-semibold text-[#17211b] outline-none transition focus:border-[#174d3c] focus:ring-2 focus:ring-[#174d3c]/15;
+  }
+
+  .choice-chip {
+    @apply inline-flex min-h-10 items-center rounded-md border border-[#d9ded4] bg-[#f7f8f5] px-3 text-sm font-semibold text-[#3d4941];
+  }
+
+  .section-label {
+    @apply text-sm font-black uppercase tracking-normal text-[#2f7f8f];
+  }
+
+  .mobile-tabbar {
+    @apply fixed inset-x-0 bottom-0 z-20 grid grid-cols-5 gap-1 border-t border-[#dce2d7] bg-white/95 px-2 py-2 shadow-[0_-10px_24px_rgba(23,33,27,0.08)] backdrop-blur xl:hidden;
+  }
+}
+
+@media (min-width: 1280px) {
+  body {
+    padding-bottom: 0;
+  }
+}
