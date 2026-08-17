@@ -13,14 +13,14 @@ export default async function Home() {
 
   return (
     <main>
-      <section className="page-shell">
-        <div className="grid gap-6 py-3 sm:gap-8 sm:py-5 lg:grid-cols-[0.92fr_1.08fr] lg:items-center">
-          <section className="max-w-2xl">
+      <section className="page-shell overflow-hidden">
+        <div className="grid min-w-0 gap-6 py-3 sm:gap-8 sm:py-5 lg:grid-cols-[0.92fr_1.08fr] lg:items-center">
+          <section className="min-w-0 max-w-2xl">
             <p className="section-label mb-3">CHUNGNAM TRAVEL COURSE MVP</p>
-            <h1 className="text-3xl font-black leading-tight text-[#17211b] sm:text-5xl">
+            <h1 className="break-keep text-2xl font-black leading-tight text-[#17211b] sm:text-4xl lg:text-5xl">
               여행 조건을 넣으면 충남 코스를 바로 추천합니다.
             </h1>
-            <p className="mt-5 text-base leading-7 text-[#4f5b52]">
+            <p className="mt-4 break-keep text-sm leading-7 text-[#4f5b52] sm:mt-5 sm:text-base">
               외국인 관광객이 예산, 인원수, 여행일수, 관심사, 이동수단을 직접
               입력하고 추천 코스와 예상 비용, 지도 동선까지 한 화면에서 확인하는
               공공데이터 기반 웹 MVP입니다.
@@ -38,7 +38,7 @@ export default async function Home() {
             </div>
           </section>
 
-          <form action="/results" className="soft-card rounded-xl p-4 sm:p-6">
+          <form action="/results" className="soft-card min-w-0 rounded-xl p-4 sm:p-6">
             <div className="mb-5 flex items-start justify-between gap-4">
               <div>
                 <p className="section-label">START</p>

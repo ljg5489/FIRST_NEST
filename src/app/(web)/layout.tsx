@@ -1,7 +1,8 @@
 // 파일 위치: src/app/(web)/layout.tsx
-// 최상위 레이아웃 파일
-import '../globals.css'
+// 웹 화면 그룹 레이아웃 파일
 import type { Metadata } from 'next'
+import { BottomNav } from './components/BottomNav'
+import { SiteHeader } from './components/SiteHeader'
 
 export const metadata: Metadata = {
   title: 'TRAVEL WITH ME',
@@ -9,13 +10,15 @@ export const metadata: Metadata = {
 }
 
 export default function RootLayout({
-  children, // 👈 여기에 반드시 중괄호가 있어야 합니다.
+  children,
 }: {
   children: React.ReactNode
 }) {
   return (
-    <html lang="ko">
-      <body>{children}</body>
-    </html>
+    <>
+      <SiteHeader />
+      {children}
+      <BottomNav />
+    </>
   )
 }
