@@ -50,10 +50,10 @@ export async function getAttractions(selectedTags?: string[]) {
   // 최종 데이터 100개 제한 호출 (추후 프론트엔드에서 페이지네이션 처리 가능(페이지를 넘기면서 추가 호출 것))
   const { data, error } = await query.limit(100);
 
-  // 4-1. DB 쿼리 실행 중 에러가 발생한 경우 (프론트에서 error.tsx로 잡을 수 있게 예외 발생)
+  // 4-1. DB 쿼리 실행 중 에러가 발생한 경우 로컬 화면 확인을 위해 Mock 데이터로 대체
   if (error) {
     console.error('[오류] 관광지 필터 호출 에러:', error.message);
-    throw new Error(`DB_FETCH_ERROR: ${error.message}`);
+    return attractions;
   }
 
   // 4-2. 결과가 비어있으면 비어있다고(빈 배열) 프론트엔드에 전달
@@ -119,7 +119,10 @@ export async function getAttractionById(id: string) {
 
   if (eventsError) {
     console.error('[오류] 연결된 주변 축제 호출 에러:', eventsError.message);
-    throw new Error(`DB_FETCH_ERROR: ${eventsError.message}`);
+    return {
+      ...placeData,
+      activeEvents: [],
+    };
   }
 
   return {
@@ -129,29 +132,21 @@ export async function getAttractionById(id: string) {
 }
 
 // 추천 코스 정보 조회
-// courses 테이블과 상세 경유지(course_stops) 정보를 JOIN 하여 가져옴
+// courses 테이블에서 추천 코스 기본 정보를 조회
 // 아직 코스 DB에 데이터가 없으므로 자동으로 Mock 데이터(recommendedCourse)를 반환
 export async function getRecommendedCourse() {
-  console.log('[DB 호출] 코스 및 상세 경유지(stops) 정보를 불러옵니다...');
+  console.log('[DB 호출] 추천 코스 기본 정보를 불러옵니다...');
   
   const { data, error } = await supabase
     .from('courses')
-    .select(`
-      *,
-      course_stops (
-        day_number,
-        sequence,
-        place_id,
-        notes
-      )
-    `)
+    .select('*')
     .limit(1)
     .single();
 
-  // DB 쿼리 실행 중 에러가 발생한 경우
+  // DB 쿼리 실행 중 에러가 발생한 경우 로컬 화면 확인을 위해 Mock 코스로 대체
   if (error && error.code !== 'PGRST116') {
     console.error('[오류] 추천 코스 DB 조회 에러:', error.message);
-    throw new Error(`DB_FETCH_ERROR: ${error.message}`);
+    return recommendedCourse;
   }
 
   if (!data) {
@@ -169,6 +164,7 @@ export async function getRecommendedCourse() {
 export async function getRecommendedCourseWithAttractions() {
   const course = await getRecommendedCourse();
   const allAttractions = await getAttractions();
+  const attractionPool = "course_stops" in course ? allAttractions : attractions;
 
   if (!course.days && !course.course_stops) {
     console.warn('[경고] DB 코스 데이터에 상세 일정(course_stops)이 부족합니다. Mock 데이터 구조를 사용합니다.');
@@ -177,7 +173,7 @@ export async function getRecommendedCourseWithAttractions() {
       days: recommendedCourse.days.map((day) => ({
         ...day,
         attractions: day.attractionIds
-          .map((id) => allAttractions.find((attraction: any) => attraction.id === id))
+          .map((id) => attractionPool.find((attraction: any) => attraction.id === id))
           .filter(isAttraction),
       })),
     };
@@ -188,7 +184,7 @@ export async function getRecommendedCourseWithAttractions() {
     days: (course.days || recommendedCourse.days).map((day: any) => ({
       ...day,
       attractions: (day.attractionIds || []).map((id: string) => 
-        allAttractions.find((attraction: any) => attraction.id === id)
+        attractionPool.find((attraction: any) => attraction.id === id)
       ).filter(isAttraction),
     })),
   };

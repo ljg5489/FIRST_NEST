@@ -4,8 +4,8 @@
 
 type KakaoDestination = {
   name: string;
-  latitude?: number | null;
-  longitude?: number | null;
+  latitude?: number | string | null;
+  longitude?: number | string | null;
   address?: string | null;
 };
 
@@ -13,21 +13,34 @@ function encodeMapValue(value: string) {
   return encodeURIComponent(value.trim());
 }
 
+function getValidCoordinate(value: number | string | null | undefined) {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : null;
+  }
+
+  if (typeof value === "string" && value.trim()) {
+    const parsedValue = Number(value);
+    return Number.isFinite(parsedValue) ? parsedValue : null;
+  }
+
+  return null;
+}
+
 export function createKakaoDirectionUrl(destination: KakaoDestination) {
-  if (
-    typeof destination.latitude === "number" &&
-    typeof destination.longitude === "number"
-  ) {
-    return `https://map.kakao.com/link/to/${encodeMapValue(destination.name)},${destination.latitude},${destination.longitude}`;
+  const latitude = getValidCoordinate(destination.latitude);
+  const longitude = getValidCoordinate(destination.longitude);
+
+  if (latitude !== null && longitude !== null) {
+    return `https://map.kakao.com/link/to/${encodeMapValue(destination.name)},${latitude},${longitude}`;
   }
 
   const searchKeyword = destination.address || destination.name;
-  return `https://map.kakao.com/?q=${encodeMapValue(searchKeyword)}`;
+  return `https://map.kakao.com/link/search/${encodeMapValue(searchKeyword)}`;
 }
 
 export function hasCoordinate(destination: KakaoDestination) {
   return (
-    typeof destination.latitude === "number" &&
-    typeof destination.longitude === "number"
+    getValidCoordinate(destination.latitude) !== null &&
+    getValidCoordinate(destination.longitude) !== null
   );
 }
