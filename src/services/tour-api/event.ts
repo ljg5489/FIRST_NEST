@@ -4,7 +4,7 @@
 const KOR_BASE_URL = 'https://apis.data.go.kr/B551011/KorService2/searchFestival2';
 const ENG_BASE_URL = 'https://apis.data.go.kr/B551011/EngService2/searchFestival2';
 
-// 키워드 기반 검색 (pageNo 매개변수 추가)
+// 이벤트 검색 (pageNo 매개변수 추가)
 export async function fetchFestival(eventDate: number, lang: 'kor' | 'eng' = 'kor', pageNo: number = 1) {
   /* 받은 매개변수가 kor 이면 KOR_BASE_URL로 아니면 ENG_BASE_URL로 작업하라는 삼항연산자*/
   const baseUrl = lang === 'kor' ? KOR_BASE_URL : ENG_BASE_URL;
@@ -15,7 +15,6 @@ export async function fetchFestival(eventDate: number, lang: 'kor' | 'eng' = 'ko
     throw new Error('.env.local에 TOUR_API_KEY가 없습니다.');
   }
 
-  //areaBasedList2(지역기반 관광정보 조회)에 대한 파라미터
   const queryParams = new URLSearchParams({
     serviceKey: apiKey,
     MobileOS: 'ETC',
