@@ -181,3 +181,80 @@ export async function translatePlaceInfo(nameKo: string, addressKo: string | nul
     throw new Error(error.message);
   }
 }
+
+/**
+ * [관리자 전용] 관광지의 결측치 데이터(설명, 전화번호, 웹사이트, 운영시간, 휴무일)를 AI를 통해 생성/검색합니다.
+ * @param nameKo 한국어 관광지 이름
+ * @param addressKo 한국어 주소
+ */
+export async function generateMissingPlaceData(nameKo: string, addressKo: string | null) {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY가 없습니다.');
+  }
+
+  // 1. 카카오 로컬 API를 통해 정확한 전화번호와 웹사이트(place_url) 검색
+  let fetchedPhone = null;
+  let fetchedWebsite = null;
+  
+  if (process.env.KAKAO_REST_API_KEY) {
+    try {
+      // 주소 또는 이름으로 카카오 장소 검색
+      const query = addressKo ? `${addressKo} ${nameKo}` : nameKo;
+      const kakaoRes = await fetch(`https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(query)}&size=1`, {
+        headers: {
+          Authorization: `KakaoAK ${process.env.KAKAO_REST_API_KEY}`
+        }
+      });
+      
+      if (kakaoRes.ok) {
+        const kakaoData = await kakaoRes.json();
+        if (kakaoData.documents && kakaoData.documents.length > 0) {
+          const doc = kakaoData.documents[0];
+          fetchedPhone = doc.phone || null;
+          fetchedWebsite = doc.place_url || null;
+        }
+      }
+    } catch (e) {
+      console.error('카카오 로컬 API 검색 실패:', e);
+    }
+  }
+
+  // 2. OpenAI에는 정보가 없는 컬럼(설명, 운영시간, 휴무일)의 생성만 요청
+  const prompt = `
+    You are a local guide for Chungcheongnam-do, South Korea.
+    Target Attraction:
+    - Name: ${nameKo}
+    - Address: ${addressKo || 'N/A'}
+
+    Return ONLY a valid JSON object with exactly these 3 keys. Use null if unsure.
+    
+    - "description": A natural Korean description (3-4 sentences) explaining what this place is and its features.
+    - "opening_hours": Operating hours in Korean (e.g., "09:00 - 18:00").
+    - "closed_days": Closed days in Korean (e.g., "매주 월요일 휴무", "연중무휴").
+  `;
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.3,
+      response_format: { type: "json_object" }, 
+    });
+
+    const content = response.choices[0].message.content || "{}";
+    const aiData = JSON.parse(content);
+
+    // 3. 카카오 검색 결과와 AI 생성 결과를 병합하여 반환
+    return {
+      description: aiData.description || null,
+      phone: fetchedPhone,
+      website: fetchedWebsite,
+      opening_hours: aiData.opening_hours || null,
+      closed_days: aiData.closed_days || null
+    };
+
+  } catch (error: any) {
+    console.error(`[오류] AI 결측치 생성 실패 (${nameKo}):`, error);
+    throw new Error(error.message);
+  }
+}

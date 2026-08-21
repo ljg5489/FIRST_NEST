@@ -13,10 +13,6 @@ export interface TourApiPlaceItem {
   mapx?: string;
   mapy?: string;
   areacode?: string;
-  sigungucode?: string;
-  cat1?: string;
-  cat2?: string;
-  cat3?: string;
   lclsSystm1?: string;
   lclsSystm2?: string;
   lclsSystm3?: string;

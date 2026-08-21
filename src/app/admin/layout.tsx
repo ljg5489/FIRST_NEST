@@ -46,7 +46,6 @@ export default function AdminLayout({
                 Conditions
               </Link>
             </li>
-            {/* 💡 새로 추가된 프롬프트 랩 메뉴 */}
             <li>
               <Link href="/admin/prompt-test" className="block px-3 py-2.5 rounded-lg hover:bg-[#21232B] hover:text-[#3EAEFF] transition-colors">
                 Prompt Lab <span className="ml-2 text-[9px] bg-[#3EAEFF]/10 text-[#3EAEFF] px-1.5 py-0.5 rounded border border-[#3EAEFF]/20">AI</span>
@@ -58,6 +57,11 @@ export default function AdminLayout({
             Data Management
           </div>
           <ul className="space-y-1 text-sm font-bold text-[#A0A5B5]">
+            <li>
+              <Link href="/admin/db-viewer" className="block px-3 py-2.5 rounded-lg hover:bg-[#21232B] hover:text-[#CEFF00] transition-colors">
+                DB Viewer <span className="ml-2 text-[9px] bg-[#CEFF00]/10 text-[#CEFF00] px-1.5 py-0.5 rounded border border-[#CEFF00]/20">Data</span>
+              </Link>
+            </li>
             <li>
               <Link href="/admin/attractions" className="block px-3 py-2.5 rounded-lg hover:bg-[#21232B] hover:text-white transition-colors">
                 Attractions
@@ -81,6 +85,11 @@ export default function AdminLayout({
             <li>
               <Link href="/admin/data-editor" className="block px-3 py-2.5 rounded-lg hover:bg-[#21232B] hover:text-[#FF4C4C] transition-colors">
                 Data Editor <span className="ml-2 text-[9px] bg-[#FF4C4C]/10 text-[#FF4C4C] px-1.5 py-0.5 rounded border border-[#FF4C4C]/20">Missing</span>
+              </Link>
+            </li>
+            <li>
+              <Link href="/admin/data-generator" className="block px-3 py-2.5 rounded-lg hover:bg-[#21232B] hover:text-[#B28DFF] transition-colors">
+                Data Generator <span className="ml-2 text-[9px] bg-[#B28DFF]/10 text-[#B28DFF] px-1.5 py-0.5 rounded border border-[#B28DFF]/20">AI</span>
               </Link>
             </li>
           </ul>

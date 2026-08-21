@@ -106,6 +106,104 @@ export async function syncMissingPlacesToDB() {
   return { success: true, count: placesToInsert.length };
 }
 
+export async function syncEnglishPlacesToDB() {
+  console.log('[DB 로직] 다국어(영어) 데이터 매핑 및 병합 업데이트 시작...');
+  const supabaseAdmin = getSupabaseAdmin();
+  
+  if (!supabaseAdmin) {
+    console.error('서버 관리자 키가 설정되지 않았습니다.');
+    return { success: false, message: '서버 관리자 키 누락' };
+  }
+
+  // 1. 영어 데이터 전체 수집
+  let pageNoEn = 1;
+  let allEngSpots: any[] = [];
+  while (true) {
+    console.log(`[TourAPI] 영어 데이터 ${pageNoEn}페이지 호출 중...`);
+    const spots = await fetchChungnamTouristSpots('eng', pageNoEn);
+    if (!spots || spots.length === 0) break;
+    allEngSpots = allEngSpots.concat(spots);
+    pageNoEn++;
+  }
+
+  // 2. 좌표 기준 Map 생성
+  const engSpotsMap = new Map();
+  allEngSpots.forEach(spot => {
+    if (spot.mapx && spot.mapy) {
+      const coordKey = `${spot.mapx}_${spot.mapy}`;
+      engSpotsMap.set(coordKey, spot);
+    }
+  });
+  console.log(`[안내] 수집된 영어 데이터 총 ${allEngSpots.length}개 (Map 구성 완료)`);
+
+  // 3. 기존 DB 데이터 전체 조회 (안전한 업데이트를 위해 모든 컬럼 포함)
+  console.log('[DB 호출] Places 테이블 전체 데이터 불러오는 중 (페이지네이션)...');
+  let allPlaces: any[] = [];
+  let from = 0;
+  const step = 1000;
+
+  while (true) {
+    const { data: placesChunk, error } = await supabaseAdmin
+      .from('places')
+      .select('*') // 기존 데이터를 잃지 않기 위해 전체 선택
+      .range(from, from + step - 1);
+
+    if (error) {
+      console.error('[오류] Places 조회 에러:', error.message);
+      break;
+    }
+    if (!placesChunk || placesChunk.length === 0) break;
+    allPlaces = allPlaces.concat(placesChunk);
+    if (placesChunk.length < step) break;
+    from += step;
+  }
+
+  // 4. 영어 정보 매핑 및 업데이트 배열 구성
+  const updatesToApply: any[] = [];
+  
+  allPlaces.forEach((place) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const raw = place.raw_data as any;
+    
+    if (raw && raw.mapx && raw.mapy) {
+      const coordKey = `${raw.mapx}_${raw.mapy}`;
+      const engSpot = engSpotsMap.get(coordKey);
+
+      if (engSpot) {
+        // 기존 객체를 복사(Spread)하고 영문 정보만 덮어씌움
+        updatesToApply.push({
+          ...place,
+          name_en: engSpot.title || null,
+          address_en: [engSpot.addr1, engSpot.addr2].filter(Boolean).join(' ') || null,
+        });
+      }
+    }
+  });
+
+  if (updatesToApply.length === 0) {
+    return { success: true, count: 0, message: '매핑할 영어 데이터가 없습니다.' };
+  }
+
+  // 5. 업데이트(Upsert) 진행
+  console.log(`[DB 적재] 매핑된 ${updatesToApply.length}개의 영어 데이터 병합 중...`);
+  
+  // 데이터가 많을 경우를 대비하여 1000개 단위로 쪼개서 업데이트 실행
+  for (let i = 0; i < updatesToApply.length; i += step) {
+    const chunk = updatesToApply.slice(i, i + step);
+    const { error } = await supabaseAdmin
+      .from('places')
+      .upsert(chunk, { onConflict: 'id' });
+
+    if (error) {
+      console.error(`[오류] 영어 데이터 병합 실패 (${i} ~ ${i + step}):`, error.message);
+      return { success: false, message: error.message };
+    }
+  }
+
+  console.log(`[완료] 총 ${updatesToApply.length}개의 영어 데이터가 기존 데이터에 성공적으로 매핑되었습니다.`);
+  return { success: true, count: updatesToApply.length };
+}
+
 
 // 지난 코드 혹시 몰라 남겨둠 
 // // 파일 위치: src/services/supabase/sync.ts

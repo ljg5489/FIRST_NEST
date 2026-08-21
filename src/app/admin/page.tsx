@@ -88,9 +88,10 @@ const mvpFeatures = [
   { id: '03', title: '충남 관광지 탐색', desc: 'DB 연동 및 목록 조회', status: 'active' },
   { id: '04', title: 'AI 맞춤 코스 추천', desc: 'Rule-based + AI 스토리텔링', status: 'active' },
   { id: '05', title: '다국어 번역 (Localization)', desc: '영문 데이터 검증 및 저장', status: 'active' },
-  { id: '06', title: '실시간 탐색 필터', desc: '오늘 영업, 금주 행사', status: 'pending' },
+  { id: '06', title: 'DB 데이터 뷰어', desc: 'Supabase 전체 테이블 조회', status: 'active' },
   { id: '07', title: '지도와 길찾기', desc: '카카오맵 연동 및 마커', status: 'active' },
   { id: '08', title: '상세 및 출처', desc: 'TourAPI 출처 및 상세 표기', status: 'pending' },
+  { id: '09', title: 'AI 결측치 생성기', desc: '설명/전화번호 등 AI 기반 자동화', status: 'active' },
 ];
 
 const travelerProfiles = [
