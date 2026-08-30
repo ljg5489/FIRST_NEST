@@ -6,6 +6,8 @@ type ItineraryPlace = {
   id: string;
   name: string;
   region: string;
+  // 근처 진행중인 축제 제목 목록 (없으면 undefined — 기존 호출부와 호환됨)
+  nearbyEvents?: string[];
 };
 
 type ItineraryDayItem = {
@@ -50,6 +52,7 @@ export function EditableItinerary({ initialDays }: EditableItineraryProps) {
                   id: makeId(),
                   name: trimmed,
                   region: day.region,
+                  // 사용자가 직접 추가한 장소는 축제 정보를 알 수 없으므로 비워둠
                 },
               ],
             }
@@ -142,23 +145,30 @@ export function EditableItinerary({ initialDays }: EditableItineraryProps) {
               item.attractions.map((place, index) => (
                 <li
                   key={place.id}
-                  className="grid gap-3 rounded-md bg-[#f7f8f5] px-4 py-3 text-sm sm:grid-cols-[1fr_auto] sm:items-center"
+                  className="grid gap-2 rounded-md bg-[#f7f8f5] px-4 py-3 text-sm"
                 >
-                  <span>
-                    {index + 1}. {place.name}
-                  </span>
-                  <div className="flex gap-2 sm:justify-self-end">
-                    <a href={`/attractions/${place.id}`} className="action-button-secondary">
-                      상세
-                    </a>
-                    <button
-                      type="button"
-                      className="action-button-danger"
-                      onClick={() => removePlace(item.day, place.id)}
-                    >
-                      삭제
-                    </button>
+                  <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
+                    <span>
+                      {index + 1}. {place.name}
+                    </span>
+                    <div className="flex gap-2 sm:justify-self-end">
+                      <a href={`/attractions/${place.id}`} className="action-button-secondary">
+                        상세
+                      </a>
+                      <button
+                        type="button"
+                        className="action-button-danger"
+                        onClick={() => removePlace(item.day, place.id)}
+                      >
+                        삭제
+                      </button>
+                    </div>
                   </div>
+                  {place.nearbyEvents && place.nearbyEvents.length > 0 && (
+                    <p className="text-xs text-[#b8860b]">
+                      🎉 근처 진행중인 축제: {place.nearbyEvents.join(", ")}
+                    </p>
+                  )}
                 </li>
               ))
             ) : (

@@ -207,7 +207,7 @@ async function getEventsForPlaces(placeIds: string[]) {
   const today = new Date().toISOString().split("T")[0];
 
   const { data, error } = await supabase
-    .from("event") // place_events (구 event) 매핑 테이블
+    .from("place_events") // ⚠️ 하경님 표현 기준 복수형. 정확한 스펠링 재확인 예정
     .select(
       `
       place_id,
