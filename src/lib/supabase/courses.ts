@@ -1,18 +1,29 @@
+"use client";
+
 // 파일 위치: src/lib/supabase/courses.ts
 // 파일 명: courses.ts
 
-import { supabase } from '@/services/supabase/client';
+import { createBrowserSupabaseClient } from "@/lib/supabase/browser";
+
+const supabase = createBrowserSupabaseClient();
 
 // ==========================================
 // 타입 정의
 // ==========================================
 
 export interface CourseInsert {
-  user_id?: string; // DB default auth.uid()가 설정되어 있으나, 명시적 주입 지원
   title: string;
   description?: string | null;
   is_public?: boolean;
   total_duration_minutes?: number | null;
+  total_distance_m?: number | null;
+  estimated_travel_minutes?: number | null;
+  estimated_cost_krw?: number | null;
+  transport_modes?: string[];
+  ai_story?: string | null;
+  route_reliability?: number | null;
+  routing_provider?: string | null;
+  metrics_calculated_at?: string | null;
 }
 
 export interface CourseStopInsert {
@@ -27,6 +38,14 @@ export interface CourseUpdate {
   description?: string | null;
   is_public?: boolean;
   total_duration_minutes?: number | null;
+  total_distance_m?: number | null;
+  estimated_travel_minutes?: number | null;
+  estimated_cost_krw?: number | null;
+  transport_modes?: string[];
+  ai_story?: string | null;
+  route_reliability?: number | null;
+  routing_provider?: string | null;
+  metrics_calculated_at?: string | null;
 }
 
 // ==========================================
