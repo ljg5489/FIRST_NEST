@@ -92,6 +92,11 @@ export default function AdminLayout({
                 Data Generator <span className="ml-2 text-[9px] bg-[#B28DFF]/10 text-[#B28DFF] px-1.5 py-0.5 rounded border border-[#B28DFF]/20">AI</span>
               </Link>
             </li>
+            <li>
+              <Link href="/admin/export-csv" className="block px-3 py-2.5 rounded-lg hover:bg-[#21232B] hover:text-[#B28DFF] transition-colors">
+                Export CSV <span className="ml-2 text-[9px] bg-[#B28DFF]/10 text-[#1e8923a7] px-1.5 py-0.5 rounded border border-[#B28DFF]/20">DB</span>
+              </Link>
+            </li>
           </ul>
         </nav>
         
