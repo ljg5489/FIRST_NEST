@@ -159,11 +159,7 @@ export async function signupAction(
     redirect("/account");
   }
 
-  return {
-    status: "success",
-    message:
-      "확인 이메일을 보냈습니다. 메일의 링크를 눌러 가입을 완료해 주세요.",
-  };
+  redirect("/signup/check-email");
 }
 
 export async function requestPasswordResetAction(

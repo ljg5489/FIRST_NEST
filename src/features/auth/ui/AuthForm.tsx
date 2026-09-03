@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { type FormEvent, useActionState, useState } from "react";
 import { initialAuthActionState } from "../constants";
 import {
   loginAction,
@@ -53,9 +53,26 @@ export function AuthForm({ mode, next = "/account" }: AuthFormProps) {
   const needsEmail = mode !== "reset-password";
   const needsPassword = mode === "login" || mode === "signup" || mode === "reset-password";
   const needsPasswordConfirmation = mode === "signup" || mode === "reset-password";
+  const [password, setPassword] = useState("");
+  const [passwordConfirmation, setPasswordConfirmation] = useState("");
+  const [passwordConfirmationTouched, setPasswordConfirmationTouched] = useState(false);
+  const passwordsMismatch =
+    needsPasswordConfirmation &&
+    passwordConfirmation.length > 0 &&
+    password !== passwordConfirmation;
+  const showPasswordMismatch = passwordConfirmationTouched && passwordsMismatch;
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    if (!passwordsMismatch) {
+      return;
+    }
+
+    event.preventDefault();
+    setPasswordConfirmationTouched(true);
+  }
 
   return (
-    <form action={formAction} className="grid gap-4">
+    <form action={formAction} className="grid gap-4" onSubmit={handleSubmit}>
       {mode === "login" ? <input type="hidden" name="next" value={next} /> : null}
 
       {needsEmail ? (
@@ -83,6 +100,7 @@ export function AuthForm({ mode, next = "/account" }: AuthFormProps) {
             minLength={8}
             autoComplete={mode === "login" ? "current-password" : "new-password"}
             placeholder="영문·숫자 포함 8자 이상"
+            onChange={(event) => setPassword(event.target.value)}
             required
           />
         </label>
@@ -97,8 +115,17 @@ export function AuthForm({ mode, next = "/account" }: AuthFormProps) {
             name="passwordConfirmation"
             minLength={8}
             autoComplete="new-password"
+            aria-describedby={showPasswordMismatch ? "password-confirmation-error" : undefined}
+            aria-invalid={showPasswordMismatch}
+            onBlur={() => setPasswordConfirmationTouched(true)}
+            onChange={(event) => setPasswordConfirmation(event.target.value)}
             required
           />
+          {showPasswordMismatch ? (
+            <span id="password-confirmation-error" role="alert" className="text-xs text-[#9f321f]">
+              비밀번호가 일치하지 않습니다.
+            </span>
+          ) : null}
         </label>
       ) : null}
 
@@ -146,7 +173,11 @@ export function AuthForm({ mode, next = "/account" }: AuthFormProps) {
         </p>
       ) : null}
 
-      <button type="submit" className="primary-button w-full border-0" disabled={isPending}>
+      <button
+        type="submit"
+        className="primary-button w-full border-0"
+        disabled={isPending}
+      >
         {isPending ? config.pendingLabel : config.submitLabel}
       </button>
 
