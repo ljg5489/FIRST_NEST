@@ -30,11 +30,7 @@ export async function getAttractions(selectedTags?: string[]) {
   let query = supabase
     .from('places')
     .select(`
-      id,
-      name_ko,
-      address,
-      latitude,
-      longitude,
+      *,
       place_images ( image_url, alt_text ),
       ${tagSelect}
     `)

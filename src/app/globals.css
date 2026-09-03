@@ -6,7 +6,7 @@
 
 :root {
   color-scheme: light;
-  --background: #f5f7f2;
+  --background: #f7f8f5;
   --foreground: #17211b;
   --muted: #5d675f;
   --line: #dce2d7;
@@ -52,11 +52,11 @@ a {
   }
 
   .hairline-card {
-    @apply border border-[#dce2d7] bg-white/75 shadow-[0_8px_24px_rgba(23,33,27,0.04)];
+    @apply border border-[#dce2d7] bg-white shadow-[0_8px_24px_rgba(23,33,27,0.035)];
   }
 
   .soft-card {
-    @apply border border-[#dce2d7] bg-white shadow-[0_10px_36px_rgba(23,33,27,0.06)];
+    @apply border border-[#dce2d7] bg-white shadow-[0_14px_44px_rgba(23,33,27,0.07)];
   }
 
   .primary-button {
@@ -68,7 +68,7 @@ a {
   }
 
   .choice-chip {
-    @apply inline-flex min-h-10 items-center rounded-md border border-[#d9ded4] bg-[#f7f8f5] px-3 text-sm font-semibold text-[#3d4941];
+    @apply inline-flex min-h-10 items-center rounded-md border border-[#d9ded4] bg-[#f7f8f5] px-3 text-sm font-semibold text-[#3d4941] transition hover:border-[#174d3c] hover:bg-white;
   }
 
   .section-label {

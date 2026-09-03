@@ -62,31 +62,55 @@ export default function KakaoMap({ places = [] }: KakaoMapProps) {
     const kakaoApiKey = process.env.NEXT_PUBLIC_KAKAO_MAP_JS_KEY;
 
     if (!kakaoApiKey) {
-      setError("API 키가 없습니다.");
+      console.error("[오류] NEXT_PUBLIC_KAKAO_MAP_JS_KEY가 설정되지 않았습니다.");
+      setError("지도 설정을 확인하는 중입니다.");
       return;
     }
 
     // 이미 스크립트가 문서에 존재하는지 확인 (중복 방지)
     const scriptId = 'kakao-map-script';
     const existingScript = document.getElementById(scriptId);
+    let isCanceled = false;
+
+    const failToLoadMap = () => {
+      if (isCanceled || mapInstance) return;
+
+      console.error(
+        "[오류] 카카오맵 로딩 실패:",
+        `origin=${window.location.origin}`,
+      );
+      setError("잠시 후 다시 지도를 열어주세요.");
+    };
+
+    const loadingTimer = window.setTimeout(failToLoadMap, 8000);
 
     const initMap = () => {
-      if (window.kakao && window.kakao.maps) {
-        window.kakao.maps.load(() => {
-          if (mapRef.current && !mapInstance) {
-            const options = {
-              center: new window.kakao.maps.LatLng(36.45, 126.8), // 충남 중심부
-              level: 11,
-            };
-            const map = new window.kakao.maps.Map(mapRef.current, options);
-            setMapInstance(map);
-          }
-        });
+      if (!window.kakao?.maps?.load) {
+        failToLoadMap();
+        return;
       }
+
+      window.kakao.maps.load(() => {
+        if (isCanceled || !mapRef.current || mapInstance) {
+          return;
+        }
+
+        window.clearTimeout(loadingTimer);
+
+        const options = {
+          center: new window.kakao.maps.LatLng(36.45, 126.8), // 충남 중심부
+          level: 11,
+        };
+        const map = new window.kakao.maps.Map(mapRef.current, options);
+        setError(null);
+        setMapInstance(map);
+      });
     };
 
     if (existingScript) {
       // 이미 스크립트가 로드되어 있다면 바로 실행
+      existingScript.addEventListener("load", initMap);
+      existingScript.addEventListener("error", failToLoadMap);
       initMap();
     } else {
       // 스크립트 태그를 직접 만들어서 HTML head에 삽입
@@ -102,13 +126,20 @@ export default function KakaoMap({ places = [] }: KakaoMapProps) {
 
         setError(
           host.startsWith('127.0.0.1')
-            ? `카카오맵 허용 도메인 문제일 수 있습니다. ${localhostUrl} 로 다시 열어주세요.`
-            : "스크립트 다운로드 실패. 네트워크 상태나 카카오맵 허용 도메인을 확인하세요.",
+            ? `localhost 주소로 다시 열어주세요. ${localhostUrl}`
+            : "지도를 불러오지 못했습니다.",
         );
       };
 
       document.head.appendChild(script);
     }
+
+    return () => {
+      isCanceled = true;
+      window.clearTimeout(loadingTimer);
+      existingScript?.removeEventListener("load", initMap);
+      existingScript?.removeEventListener("error", failToLoadMap);
+    };
   }, [mapInstance]);
 
   // 2. 지도가 로드된 후 관광지 마커를 찍는 로직
@@ -171,16 +202,19 @@ export default function KakaoMap({ places = [] }: KakaoMapProps) {
 
   if (error) {
     return (
-      <div className="w-full h-[500px] flex items-center justify-center bg-red-50 text-red-500 rounded-xl border border-red-200 font-bold">
-        {error}
+      <div className="flex h-[420px] w-full flex-col items-center justify-center rounded-lg border border-[#dce2d7] bg-white p-6 text-center sm:h-[500px]">
+        <p className="text-lg font-black text-[#17211b]">지도를 불러오지 못했어요.</p>
+        <p className="mt-3 max-w-sm text-sm font-semibold leading-6 text-[#667165]">
+          {error} 위치 정보는 아래 목록과 길찾기 버튼으로 확인할 수 있습니다.
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="relative w-full h-[500px] overflow-hidden rounded-xl shadow-md border border-gray-200">
+    <div className="relative h-[420px] w-full overflow-hidden rounded-lg border border-[#dce2d7] bg-white shadow-[0_10px_30px_rgba(23,33,27,0.08)] sm:h-[500px]">
       {!mapInstance && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-50 text-gray-500 font-medium z-10">
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-gray-50 font-bold text-gray-500">
           지도를 그리는 중입니다...
         </div>
       )}

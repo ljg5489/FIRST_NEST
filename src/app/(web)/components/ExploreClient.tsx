@@ -9,6 +9,7 @@ type ExploreClientProps = {
 };
 
 type SortOption = "score_desc" | "name_asc" | "region_asc" | "category_asc";
+type DataFilterOption = "all" | "with_image" | "with_coordinate";
 
 const sortOptions: { value: SortOption; label: string }[] = [
   { value: "score_desc", label: "데이터 점수 높은순" },
@@ -17,12 +18,22 @@ const sortOptions: { value: SortOption; label: string }[] = [
   { value: "category_asc", label: "카테고리순" },
 ];
 
+const dataFilterOptions: { value: DataFilterOption; label: string }[] = [
+  { value: "all", label: "전체 데이터" },
+  { value: "with_image", label: "이미지 있는 곳" },
+  { value: "with_coordinate", label: "좌표 있는 곳" },
+];
+
 const koCollator = new Intl.Collator("ko-KR", {
   numeric: true,
   sensitivity: "base",
 });
 
 function getDisplayScore(attraction: Attraction) {
+  if (typeof attraction.dataCompletenessScore === "number") {
+    return Math.max(0, Math.min(Math.round(attraction.dataCompletenessScore), 100));
+  }
+
   let score = 40;
 
   if (attraction.imageUrl) score += 20;
@@ -48,6 +59,9 @@ export function ExploreClient({ attractions, interests }: ExploreClientProps) {
   const [selectedRegion, setSelectedRegion] = useState("전체 지역");
   const [selectedTheme, setSelectedTheme] = useState("전체 테마");
   const [sortOption, setSortOption] = useState<SortOption>("score_desc");
+  const [dataFilter, setDataFilter] = useState<DataFilterOption>("all");
+  const [onlyAvailableToday, setOnlyAvailableToday] = useState(false);
+  const [onlyThisWeekEvent, setOnlyThisWeekEvent] = useState(false);
   const [visibleCount, setVisibleCount] = useState(8);
 
   const regions = useMemo(
@@ -71,10 +85,34 @@ export function ExploreClient({ attractions, interests }: ExploreClientProps) {
         selectedRegion === "전체 지역" || attraction.region === selectedRegion;
       const matchesTheme =
         selectedTheme === "전체 테마" || attraction.category.includes(selectedTheme);
+      const matchesDataFilter =
+        dataFilter === "all" ||
+        (dataFilter === "with_image" && Boolean(attraction.imageUrl)) ||
+        (dataFilter === "with_coordinate" &&
+          Boolean(attraction.latitude && attraction.longitude));
+      const matchesAvailableToday =
+        !onlyAvailableToday || attraction.operationStatus === "available_today";
+      const matchesThisWeekEvent =
+        !onlyThisWeekEvent || attraction.hasThisWeekEvent === true;
 
-      return matchesKeyword && matchesRegion && matchesTheme;
+      return (
+        matchesKeyword &&
+        matchesRegion &&
+        matchesTheme &&
+        matchesDataFilter &&
+        matchesAvailableToday &&
+        matchesThisWeekEvent
+      );
     });
-  }, [attractions, keyword, selectedRegion, selectedTheme]);
+  }, [
+    attractions,
+    dataFilter,
+    keyword,
+    onlyAvailableToday,
+    onlyThisWeekEvent,
+    selectedRegion,
+    selectedTheme,
+  ]);
 
   const sortedAttractions = useMemo(() => {
     return [...filteredAttractions].sort((a, b) => {
@@ -100,8 +138,19 @@ export function ExploreClient({ attractions, interests }: ExploreClientProps) {
     setSelectedRegion("전체 지역");
     setSelectedTheme("전체 테마");
     setSortOption("score_desc");
+    setDataFilter("all");
+    setOnlyAvailableToday(false);
+    setOnlyThisWeekEvent(false);
     setVisibleCount(8);
   };
+
+  const hasAnyOperationInfo = attractions.some((attraction) => attraction.hasOperationInfo);
+  const hasAnyThisWeekEvent = attractions.some((attraction) => attraction.hasThisWeekEvent);
+  const emptyMessage = onlyThisWeekEvent
+    ? "이번 주 행사와 연결된 관광지 데이터가 아직 부족합니다. 행사 데이터가 더 연결되면 이 필터에서 바로 확인할 수 있습니다."
+    : onlyAvailableToday
+      ? "오늘 운영이 확인된 관광지가 없습니다. 운영정보가 부족한 장소는 방문 전 확인이 필요합니다."
+      : "조건에 맞는 관광지가 없습니다. 필터를 초기화하거나 다른 키워드를 입력해보세요.";
 
   return (
     <>
@@ -112,12 +161,18 @@ export function ExploreClient({ attractions, interests }: ExploreClientProps) {
             placeholder="키워드 검색"
             aria-label="키워드 검색"
             value={keyword}
-            onChange={(event) => setKeyword(event.target.value)}
+            onChange={(event) => {
+              setKeyword(event.target.value);
+              setVisibleCount(8);
+            }}
           />
           <select
             className="field-control"
             value={selectedRegion}
-            onChange={(event) => setSelectedRegion(event.target.value)}
+            onChange={(event) => {
+              setSelectedRegion(event.target.value);
+              setVisibleCount(8);
+            }}
           >
             <option>전체 지역</option>
             {regions.map((region) => (
@@ -127,7 +182,10 @@ export function ExploreClient({ attractions, interests }: ExploreClientProps) {
           <select
             className="field-control"
             value={selectedTheme}
-            onChange={(event) => setSelectedTheme(event.target.value)}
+            onChange={(event) => {
+              setSelectedTheme(event.target.value);
+              setVisibleCount(8);
+            }}
           >
             <option>전체 테마</option>
             {interests.map((interest) => (
@@ -138,7 +196,10 @@ export function ExploreClient({ attractions, interests }: ExploreClientProps) {
             className="field-control"
             value={sortOption}
             aria-label="정렬 기준"
-            onChange={(event) => setSortOption(event.target.value as SortOption)}
+            onChange={(event) => {
+              setSortOption(event.target.value as SortOption);
+              setVisibleCount(8);
+            }}
           >
             {sortOptions.map((option) => (
               <option key={option.value} value={option.value}>
@@ -149,6 +210,63 @@ export function ExploreClient({ attractions, interests }: ExploreClientProps) {
           <button type="button" className="primary-button border-0" onClick={resetFilters}>
             필터 초기화
           </button>
+        </div>
+        <div className="mt-4 grid gap-2 md:grid-cols-[1fr_1fr_1fr]">
+          <button
+            type="button"
+            aria-pressed={onlyAvailableToday}
+            className={`rounded-md border px-4 py-3 text-left text-sm font-black transition ${
+              onlyAvailableToday
+                ? "border-[#174d3c] bg-[#174d3c] text-white"
+                : "border-[#dce2d7] bg-white text-[#3d4941] hover:border-[#174d3c]"
+            }`}
+            onClick={() => {
+              setOnlyAvailableToday((value) => !value);
+              setVisibleCount(8);
+            }}
+          >
+            오늘 갈 수 있는 곳
+            <span className="mt-1 block text-xs font-bold opacity-80">
+              {hasAnyOperationInfo
+                ? "운영정보가 확인된 장소만 보기"
+                : "운영정보 데이터가 부족합니다"}
+            </span>
+          </button>
+          <button
+            type="button"
+            aria-pressed={onlyThisWeekEvent}
+            className={`rounded-md border px-4 py-3 text-left text-sm font-black transition ${
+              onlyThisWeekEvent
+                ? "border-[#2f7f8f] bg-[#2f7f8f] text-white"
+                : "border-[#dce2d7] bg-white text-[#3d4941] hover:border-[#2f7f8f]"
+            }`}
+            onClick={() => {
+              setOnlyThisWeekEvent((value) => !value);
+              setVisibleCount(8);
+            }}
+          >
+            이번 주 행사
+            <span className="mt-1 block text-xs font-bold opacity-80">
+              {hasAnyThisWeekEvent
+                ? "행사 지역과 연결된 관광지만 보기"
+                : "연결된 행사 데이터가 부족합니다"}
+            </span>
+          </button>
+          <select
+            className="field-control h-full"
+            value={dataFilter}
+            aria-label="데이터 보유 상태"
+            onChange={(event) => {
+              setDataFilter(event.target.value as DataFilterOption);
+              setVisibleCount(8);
+            }}
+          >
+            {dataFilterOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
         </div>
         <p className="mt-3 text-sm font-bold text-[#2f7f8f]">
           검색 결과 {filteredAttractions.length.toLocaleString("ko-KR")}개 ·{" "}
@@ -223,6 +341,11 @@ export function ExploreClient({ attractions, interests }: ExploreClientProps) {
                     <p className="mt-1 line-clamp-1 text-sm font-bold text-white/90">
                       {attraction.region} · {attraction.category} · 데이터 점수 {score}
                     </p>
+                    <p className="mt-1 line-clamp-1 text-xs font-bold text-white/80">
+                      {attraction.hasThisWeekEvent
+                        ? attraction.eventLabel ?? "이번 주 행사 지역"
+                        : attraction.operationLabel ?? "운영정보 확인 필요"}
+                    </p>
                   </div>
                 </a>
               );
@@ -245,7 +368,7 @@ export function ExploreClient({ attractions, interests }: ExploreClientProps) {
 
       {filteredAttractions.length === 0 ? (
         <section className="soft-card mt-6 rounded-lg p-6 text-sm text-[#667165]">
-          조건에 맞는 관광지가 없습니다. 필터를 초기화하거나 다른 키워드를 입력해보세요.
+          {emptyMessage}
         </section>
       ) : null}
     </>

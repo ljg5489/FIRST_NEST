@@ -33,6 +33,14 @@ export type Attraction = {
   latitude?: number | null;
   longitude?: number | null;
   imageUrl?: string;
+  dataCompletenessScore?: number | null;
+  hasOperationInfo?: boolean;
+  operationStatus?: "available_today" | "closed_today" | "unknown";
+  operationLabel?: string;
+  operationNotice?: string;
+  operationHours?: string | null;
+  hasThisWeekEvent?: boolean;
+  eventLabel?: string | null;
 };
 
 export type ItineraryDay = {

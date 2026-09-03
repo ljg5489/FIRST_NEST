@@ -1,37 +1,146 @@
-import { getAttractions, getTravelConditionOptions } from "@/lib/data";
+import { getAttractions, getFestivals, getTravelConditionOptions } from "@/lib/data";
 import type { Attraction } from "@/lib/types";
 import { ExploreClient } from "../components/ExploreClient";
 
 export const dynamic = "force-dynamic";
 
+const dayNames = ["일", "월", "화", "수", "목", "금", "토"];
+
+function getText(value: unknown, fallback = "") {
+  return typeof value === "string" && value.trim() ? value.trim() : fallback;
+}
+
+function getRegionFromAddress(address: string | null | undefined, fallback = "충남") {
+  return address?.split(" ")[1] ?? fallback;
+}
+
+function getRawText(place: any, key: string, fallback = "") {
+  return getText(place.raw_data?.[key], fallback);
+}
+
+function getOperationInfo(place: any) {
+  const operationHours =
+    getText(place.opening_hours) ||
+    getRawText(place, "usetime") ||
+    getRawText(place, "usetimeculture") ||
+    getRawText(place, "usetimeleports") ||
+    getRawText(place, "usetimefestival");
+  const closedDays =
+    getText(place.closed_days) ||
+    getRawText(place, "restdate") ||
+    getRawText(place, "restdateculture") ||
+    getRawText(place, "restdateleports");
+  const hasOperationInfo = Boolean(operationHours || closedDays);
+
+  if (!hasOperationInfo) {
+    return {
+      hasOperationInfo: false,
+      operationStatus: "unknown" as const,
+      operationLabel: "운영정보 확인 필요",
+      operationNotice: "운영정보 데이터가 부족해 방문 전 확인이 필요합니다.",
+      operationHours: null,
+    };
+  }
+
+  const todayName = dayNames[new Date().getDay()];
+  const normalizedClosedDays = closedDays.replace(/\s/g, "");
+  const isAlwaysOpen =
+    normalizedClosedDays.includes("연중무휴") ||
+    normalizedClosedDays.includes("휴무없음") ||
+    normalizedClosedDays.includes("없음");
+  const isClosedToday =
+    !isAlwaysOpen &&
+    (normalizedClosedDays.includes(`${todayName}요일`) ||
+      normalizedClosedDays.includes(`매주${todayName}`) ||
+      normalizedClosedDays.includes(`${todayName}휴무`));
+
+  if (isClosedToday) {
+    return {
+      hasOperationInfo: true,
+      operationStatus: "closed_today" as const,
+      operationLabel: "오늘 휴무 가능성",
+      operationNotice: `${todayName}요일 휴무 정보가 있어 방문 전 확인이 필요합니다.`,
+      operationHours,
+    };
+  }
+
+  return {
+    hasOperationInfo: true,
+    operationStatus: "available_today" as const,
+    operationLabel: "오늘 방문 가능",
+    operationNotice: operationHours || "운영정보가 확인된 관광지입니다.",
+    operationHours,
+  };
+}
+
+function isThisWeekEvent(event: any) {
+  const startDate = getText(event.event_start_date);
+  const endDate = getText(event.event_end_date);
+
+  if (!startDate || !endDate) {
+    return false;
+  }
+
+  const today = new Date();
+  const weekEnd = new Date(today);
+  weekEnd.setDate(today.getDate() + 6);
+
+  return new Date(startDate) <= weekEnd && new Date(endDate) >= today;
+}
+
 export default async function ExplorePage() {
-  const [attractions, options] = await Promise.all([
+  const [attractions, options, festivals] = await Promise.all([
     getAttractions(),
     getTravelConditionOptions(),
+    getFestivals().catch(() => []),
   ]);
+  const eventRegions = new Set(
+    (festivals as any[])
+      .filter(isThisWeekEvent)
+      .map((event) => getRegionFromAddress(event.address, ""))
+      .filter(Boolean),
+  );
 
-  const exploreAttractions: Attraction[] = attractions.map((place) => ({
-    id: place.id,
-    name: place.name_ko,
-    region: place.address?.split(" ")[1] ?? "충남",
-    category: place.place_tags?.[0]?.tag ?? "관광지",
-    address: place.address ?? "주소 정보 없음",
-    summary: "한국관광공사 TourAPI 기반 충남 관광지입니다.",
-    source: "Korea Tourism Organization TourAPI",
-    estimatedCost: 0,
-    mapUrl: `https://map.kakao.com/link/search/${encodeURIComponent(place.name_ko)}`,
-    latitude: place.latitude,
-    longitude: place.longitude,
-    imageUrl: place.place_images?.[0]?.image_url,
-  }));
+  const exploreAttractions: Attraction[] = attractions.map((place: any) => {
+    const name = place.name_ko ?? place.name ?? "관광지";
+    const address = place.address ?? "주소 정보 없음";
+    const region = place.region ?? getRegionFromAddress(place.address, "충남");
+    const category = place.category ?? place.place_tags?.[0]?.tag ?? "관광지";
+    const operationInfo = getOperationInfo(place);
+    const hasThisWeekEvent = eventRegions.has(region);
+
+    return {
+      id: place.id,
+      name,
+      nameEn: place.name_en ?? place.nameEn,
+      region,
+      category,
+      address,
+      addressEn: place.address_en ?? place.addressEn,
+      summary:
+        place.summary ??
+        place.description ??
+        getRawText(place, "overview", "한국관광공사 TourAPI 기반 충남 관광지입니다."),
+      source: "Korea Tourism Organization TourAPI",
+      estimatedCost: place.estimatedCost ?? 0,
+      mapUrl: place.mapUrl ?? `https://map.kakao.com/link/search/${encodeURIComponent(name)}`,
+      latitude: place.latitude,
+      longitude: place.longitude,
+      imageUrl: place.imageUrl ?? place.place_images?.[0]?.image_url,
+      dataCompletenessScore: place.data_completeness_score ?? null,
+      ...operationInfo,
+      hasThisWeekEvent,
+      eventLabel: hasThisWeekEvent ? `${region} 이번 주 행사` : null,
+    };
+  });
 
   return (
     <main className="page-shell">
       <p className="section-label">/explore</p>
       <h1 className="mt-2 text-2xl font-bold sm:text-3xl">관광지 탐색</h1>
       <p className="mt-3 max-w-2xl text-[#4f5b52]">
-        지역, 테마, 키워드 기준으로 충남 관광지를 카드 목록에서 확인하는 화면입니다.
-        데이터 점수는 이미지, 주소, 좌표, 다국어 정보 보유 여부를 기준으로 임시 표시합니다.
+        지역, 테마, 키워드, 운영정보, 행사 여부 기준으로 충남 관광지를 좁혀보는 화면입니다.
+        데이터가 부족한 항목은 방문 전 확인이 필요하도록 별도 문구로 표시합니다.
       </p>
       <p className="mt-2 text-sm font-bold text-[#2f7f8f]">
         현재 표시 데이터 {exploreAttractions.length.toLocaleString("ko-KR")}개
