@@ -11,15 +11,12 @@ import {
   PRIVACY_VERSION,
   TERMS_VERSION,
 } from "../constants";
+import { isValidEmailFormat } from "../validation";
 import { getSafeNextPath, getSiteUrl } from "./redirect";
 
 function readText(formData: FormData, key: string) {
   const value = formData.get(key);
   return typeof value === "string" ? value.trim() : "";
-}
-
-function isValidEmail(email: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
 function validatePassword(password: string, confirmation?: string) {
@@ -60,7 +57,7 @@ export async function loginAction(
   const password = readText(formData, "password");
   const next = getSafeNextPath(formData.get("next"));
 
-  if (!isValidEmail(email) || !password) {
+  if (!isValidEmailFormat(email) || !password) {
     return {
       status: "error",
       message: "올바른 이메일과 비밀번호를 입력해 주세요.",
@@ -89,7 +86,7 @@ export async function signupAction(
   const areTermsAccepted = formData.get("termsAccepted") === "on";
   const isPrivacyAccepted = formData.get("privacyAccepted") === "on";
 
-  if (!isValidEmail(email)) {
+  if (!isValidEmailFormat(email)) {
     return { status: "error", message: "올바른 이메일을 입력해 주세요." };
   }
 
@@ -168,7 +165,7 @@ export async function requestPasswordResetAction(
 ): Promise<AuthActionState> {
   const email = readText(formData, "email").toLowerCase();
 
-  if (!isValidEmail(email)) {
+  if (!isValidEmailFormat(email)) {
     return { status: "error", message: "올바른 이메일을 입력해 주세요." };
   }
 

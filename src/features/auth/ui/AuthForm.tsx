@@ -9,6 +9,7 @@ import {
   signupAction,
   updatePasswordAction,
 } from "../server/actions";
+import { isValidEmailFormat } from "../validation";
 
 type AuthFormMode = "login" | "signup" | "forgot-password" | "reset-password";
 
@@ -53,6 +54,8 @@ export function AuthForm({ mode, next = "/account" }: AuthFormProps) {
   const needsEmail = mode !== "reset-password";
   const needsPassword = mode === "login" || mode === "signup" || mode === "reset-password";
   const needsPasswordConfirmation = mode === "signup" || mode === "reset-password";
+  const [email, setEmail] = useState("");
+  const [emailTouched, setEmailTouched] = useState(false);
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [passwordConfirmationTouched, setPasswordConfirmationTouched] = useState(false);
@@ -61,14 +64,21 @@ export function AuthForm({ mode, next = "/account" }: AuthFormProps) {
     passwordConfirmation.length > 0 &&
     password !== passwordConfirmation;
   const showPasswordMismatch = passwordConfirmationTouched && passwordsMismatch;
+  const emailInvalid = needsEmail && email.length > 0 && !isValidEmailFormat(email);
+  const showEmailError = emailTouched && emailInvalid;
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    if (!passwordsMismatch) {
+    if (!emailInvalid && !passwordsMismatch) {
       return;
     }
 
     event.preventDefault();
-    setPasswordConfirmationTouched(true);
+    if (emailInvalid) {
+      setEmailTouched(true);
+    }
+    if (passwordsMismatch) {
+      setPasswordConfirmationTouched(true);
+    }
   }
 
   return (
@@ -85,8 +95,18 @@ export function AuthForm({ mode, next = "/account" }: AuthFormProps) {
             autoComplete="email"
             inputMode="email"
             placeholder="name@example.com"
+            aria-describedby={showEmailError ? "email-format-error" : undefined}
+            aria-invalid={showEmailError}
+            onBlur={() => setEmailTouched(true)}
+            onChange={(event) => setEmail(event.target.value)}
+            onInvalid={() => setEmailTouched(true)}
             required
           />
+          {showEmailError ? (
+            <span id="email-format-error" role="alert" className="text-xs text-[#9f321f]">
+              이메일 형식을 확인해 주세요. 예: name@example.com
+            </span>
+          ) : null}
         </label>
       ) : null}
 
