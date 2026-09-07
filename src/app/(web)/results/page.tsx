@@ -32,6 +32,30 @@ function getMultiParam(
   return value ?? fallback;
 }
 
+function buildPathWithParams(
+  path: string,
+  searchParams: Record<string, string | string[] | undefined>,
+) {
+  const params = new URLSearchParams();
+
+  Object.entries(searchParams).forEach(([key, value]) => {
+    if (Array.isArray(value)) {
+      value.forEach((item) => {
+        if (item) params.append(key, item);
+      });
+      return;
+    }
+
+    if (value) {
+      params.set(key, value);
+    }
+  });
+
+  const query = params.toString();
+
+  return query ? `${path}?${query}` : path;
+}
+
 // "1일" / "2일" 같은 문자열에서 숫자만 뽑아냄. 매칭 안 되면 1일로 폴백
 function parseTripDays(tripDaysLabel: string): number {
   const match = tripDaysLabel.match(/\d+/);
@@ -50,7 +74,7 @@ export default async function ResultsPage({ searchParams }: ResultsPageProps) {
   const transport = getSingleParam(params, "transport", "");
   const interests = getMultiParam(params, "interests", "선택 안 함");
   const budgetLabel = budget ? `${Number(budget).toLocaleString("ko-KR")}원` : "입력 없음";
-  const mapHref = `/map?tripDays=${encodeURIComponent(tripDays)}&people=${encodeURIComponent(people)}&transport=${encodeURIComponent(transport)}`;
+  const mapHref = buildPathWithParams("/map", params);
 
   // 조건 미입력 시엔 추천 로직(카카오/OpenAI 호출 포함)을 아예 안 돌림 — 불필요한 API 비용/지연 방지
   let itineraryDays: ReturnType<typeof adaptToEditableItineraryDays> | null = null;

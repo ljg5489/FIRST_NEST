@@ -6,6 +6,10 @@ export const dynamic = "force-dynamic";
 
 const dayNames = ["일", "월", "화", "수", "목", "금", "토"];
 
+type ExplorePageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
+
 function getText(value: unknown, fallback = "") {
   return typeof value === "string" && value.trim() ? value.trim() : fallback;
 }
@@ -88,7 +92,17 @@ function isThisWeekEvent(event: any) {
   return new Date(startDate) <= weekEnd && new Date(endDate) >= today;
 }
 
-export default async function ExplorePage() {
+function getSearchParam(
+  searchParams: Record<string, string | string[] | undefined>,
+  key: string,
+) {
+  const value = searchParams[key];
+
+  return Array.isArray(value) ? value[0] : value;
+}
+
+export default async function ExplorePage({ searchParams }: ExplorePageProps) {
+  const params = await searchParams;
   const [attractions, options, festivals] = await Promise.all([
     getAttractions(),
     getTravelConditionOptions(),
@@ -145,7 +159,23 @@ export default async function ExplorePage() {
       <p className="mt-2 text-sm font-bold text-[#2f7f8f]">
         현재 표시 데이터 {exploreAttractions.length.toLocaleString("ko-KR")}개
       </p>
-      <ExploreClient attractions={exploreAttractions} interests={options.interests} />
+      <ExploreClient
+        attractions={exploreAttractions}
+        interests={options.interests}
+        initialFilters={{
+          keyword: getSearchParam(params, "keyword"),
+          region: getSearchParam(params, "region"),
+          theme: getSearchParam(params, "theme"),
+          data:
+            getSearchParam(params, "data") === "with_image" ||
+            getSearchParam(params, "data") === "with_coordinate"
+              ? (getSearchParam(params, "data") as "with_image" | "with_coordinate")
+              : undefined,
+          available: getSearchParam(params, "available") === "today" ? "today" : undefined,
+          event:
+            getSearchParam(params, "event") === "this-week" ? "this-week" : undefined,
+        }}
+      />
     </main>
   );
 }

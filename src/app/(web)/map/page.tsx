@@ -6,6 +6,10 @@ type RoutePlace = KakaoMapPlace & {
   mapUrl?: string;
 };
 
+type MapPageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
+
 export const dynamic = "force-dynamic";
 
 function getPlaceName(place: RoutePlace) {
@@ -25,13 +29,40 @@ function getPlaceDirectionUrl(place: RoutePlace) {
   });
 }
 
-export default async function MapPage() {
+function getSingleParam(
+  searchParams: Record<string, string | string[] | undefined>,
+  key: string,
+) {
+  const value = searchParams[key];
+
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function getMultiParam(
+  searchParams: Record<string, string | string[] | undefined>,
+  key: string,
+) {
+  const value = searchParams[key];
+
+  return Array.isArray(value) ? value.join(", ") : value;
+}
+
+export default async function MapPage({ searchParams }: MapPageProps) {
+  const params = await searchParams;
   const course = await getRecommendedCourseWithAttractions();
   const route: RoutePlace[] = course.days.flatMap((day) => day.attractions);
   const firstRoute = route[0];
   const firstDirectionUrl = firstRoute
     ? getPlaceDirectionUrl(firstRoute)
     : "https://map.kakao.com";
+  const conditionSummary = [
+    getSingleParam(params, "tripDays"),
+    getSingleParam(params, "people")
+      ? `${getSingleParam(params, "people")}명`
+      : null,
+    getSingleParam(params, "transport"),
+    getMultiParam(params, "interests"),
+  ].filter(Boolean);
 
   return (
     <main className="page-shell">
@@ -40,6 +71,18 @@ export default async function MapPage() {
       <p className="mt-3 max-w-2xl text-[#4f5b52]">
         추천 코스에 포함된 관광지를 Kakao Map 위에 표시하고, 실제 이동 안내는 카카오맵 외부 링크로 연결합니다.
       </p>
+      {conditionSummary.length > 0 ? (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {conditionSummary.map((condition) => (
+            <span
+              key={condition}
+              className="rounded-md bg-[#eef6f2] px-3 py-2 text-sm font-black text-[#174d3c]"
+            >
+              {condition}
+            </span>
+          ))}
+        </div>
+      ) : null}
 
       <section className="mt-6 grid gap-5 lg:mt-8 lg:grid-cols-[1fr_0.45fr]">
         <KakaoMap places={route} />
