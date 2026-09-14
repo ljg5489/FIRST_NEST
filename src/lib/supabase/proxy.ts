@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getSupabasePublicConfig } from "./config";
 
 const protectedPaths = ["/account"];
+const adminPath = (path: string) => path === '/admin' || path.startsWith('/admin/');
 
 function isProtectedPath(pathname: string) {
   return protectedPaths.some(
@@ -40,6 +41,14 @@ export async function updateSession(request: NextRequest) {
   // 서버 보호에서는 검증되지 않은 getSession() 값을 신뢰하지 않습니다.
   const { data } = await supabase.auth.getClaims();
   const isSignedIn = Boolean(data?.claims?.sub);
+
+  if (adminPath(request.nextUrl.pathname)) {
+    const {data:{user}} = await supabase.auth.getUser();
+    if (!user) return NextResponse.redirect(new URL('/login?next=/admin',request.url));
+    if (!user.email_confirmed_at || user.app_metadata?.role !== 'admin') {
+      return NextResponse.redirect(new URL('/account?error=admin-only',request.url));
+    }
+  }
 
   if (!isSignedIn && isProtectedPath(request.nextUrl.pathname)) {
     const loginUrl = request.nextUrl.clone();

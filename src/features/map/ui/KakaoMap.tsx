@@ -164,9 +164,10 @@ export default function KakaoMap({ places = [] }: KakaoMapProps) {
           title: place.title,
         });
 
-        const infoWindow = new window.kakao.maps.InfoWindow({
-          content: `<div style="min-width:150px;padding:10px;font-size:13px;font-weight:700;color:#17211b;">${place.title}</div>`,
-        });
+        const label = document.createElement('div');
+        label.style.cssText = 'min-width:150px;padding:10px;font-size:13px;font-weight:700;color:#17211b;';
+        label.textContent = place.title;
+        const infoWindow = new window.kakao.maps.InfoWindow({content: label});
 
         window.kakao.maps.event.addListener(marker, 'click', () => {
           infoWindowRef.current?.close();

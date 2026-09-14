@@ -97,7 +97,7 @@ export async function getAttractionById(id: string) {
 
   // 해당 관광지에 매핑된 진행/예정 축제 조회
   const { data: activeEvents, error: eventsError } = await supabase
-    .from('event') 
+    .from('place_events')
     .select(`
       start_date,
       end_date,

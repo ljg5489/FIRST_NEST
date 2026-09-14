@@ -25,7 +25,7 @@ function extractRegion(address: string | null | undefined): string {
 export interface EditableItineraryDay {
   day: string;
   region: string;
-  attractions: Array<{ id: string; name: string; region: string; nearbyEvents?: string[] }>;
+  attractions: Array<{ id: string; name: string; region: string; address?: string; latitude?: number; longitude?: number; nearbyEvents?: string[] }>;
 }
 
 export function adaptToEditableItineraryDays(built: BuiltCourse): EditableItineraryDay[] {
@@ -51,6 +51,9 @@ export function adaptToEditableItineraryDays(built: BuiltCourse): EditableItiner
           id: stop.place_id,
           name: stop.place_name,
           region: extractRegion(place?.address),
+          address: place?.address ?? undefined,
+          latitude: place?.latitude == null ? undefined : Number(place.latitude),
+          longitude: place?.longitude == null ? undefined : Number(place.longitude),
           nearbyEvents: eventTitles.length > 0 ? eventTitles : undefined,
         };
       }),

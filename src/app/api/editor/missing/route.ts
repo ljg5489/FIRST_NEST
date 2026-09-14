@@ -1,9 +1,15 @@
 import { NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/services/supabase/admin';
+import {validAdminColumns} from '@/lib/admin-policy';
+
+import {guardAdminRequest} from '@/lib/admin-auth';
 
 export async function POST(request: Request) {
+  const denied = await guardAdminRequest(request);
+  if (denied) return denied;
   try {
     const { table, columns } = await request.json();
+    if (!validAdminColumns(table,columns)) return NextResponse.json({error:'허용되지 않은 테이블 또는 컬럼입니다.'},{status:400});
     
     if (!table || !columns || columns.length === 0) {
       return NextResponse.json({ error: '테이블 또는 컬럼 정보 누락' }, { status: 400 });

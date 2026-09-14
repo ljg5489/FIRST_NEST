@@ -6,6 +6,14 @@ import type { Attraction, Interest } from "@/lib/types";
 type ExploreClientProps = {
   attractions: Attraction[];
   interests: Interest[];
+  initialFilters?: {
+    keyword?: string;
+    region?: string;
+    theme?: string;
+    data?: DataFilterOption;
+    available?: "today";
+    event?: "this-week";
+  };
 };
 
 type SortOption = "score_desc" | "name_asc" | "region_asc" | "category_asc";
@@ -54,14 +62,22 @@ function compareText(a: string | null | undefined, b: string | null | undefined)
   return koCollator.compare(a ?? "", b ?? "");
 }
 
-export function ExploreClient({ attractions, interests }: ExploreClientProps) {
-  const [keyword, setKeyword] = useState("");
-  const [selectedRegion, setSelectedRegion] = useState("전체 지역");
-  const [selectedTheme, setSelectedTheme] = useState("전체 테마");
+export function ExploreClient({ attractions, interests, initialFilters }: ExploreClientProps) {
+  const [keyword, setKeyword] = useState(initialFilters?.keyword ?? "");
+  const [selectedRegion, setSelectedRegion] = useState(
+    initialFilters?.region ?? "전체 지역",
+  );
+  const [selectedTheme, setSelectedTheme] = useState(initialFilters?.theme ?? "전체 테마");
   const [sortOption, setSortOption] = useState<SortOption>("score_desc");
-  const [dataFilter, setDataFilter] = useState<DataFilterOption>("all");
-  const [onlyAvailableToday, setOnlyAvailableToday] = useState(false);
-  const [onlyThisWeekEvent, setOnlyThisWeekEvent] = useState(false);
+  const [dataFilter, setDataFilter] = useState<DataFilterOption>(
+    initialFilters?.data ?? "all",
+  );
+  const [onlyAvailableToday, setOnlyAvailableToday] = useState(
+    initialFilters?.available === "today",
+  );
+  const [onlyThisWeekEvent, setOnlyThisWeekEvent] = useState(
+    initialFilters?.event === "this-week",
+  );
   const [visibleCount, setVisibleCount] = useState(8);
 
   const regions = useMemo(

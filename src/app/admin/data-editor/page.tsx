@@ -82,19 +82,6 @@ const TABLE_SCHEMAS: Record<string, { key: string; label: string; isTextArea?: b
     { key: 'is_primary', label: '대표 이미지 여부', type: 'boolean' },
     { key: 'serial_number', label: '정렬 순서 (Serial)', type: 'number' },
   ],
-  courses: [
-    { key: 'id', label: 'Course ID', isReadOnly: true },
-    { key: 'title', label: '코스 이름', type: 'text' },
-    { key: 'description', label: '코스 요약 설명', type: 'text', isTextArea: true },
-    { key: 'total_duration_minutes', label: '총 소요시간(분)', type: 'number' },
-    { key: 'is_public', label: '공개 여부', type: 'boolean' },
-  ],
-  course_stops: [
-    { key: 'id', label: 'Stop ID', isReadOnly: true },
-    { key: 'stay_minutes', label: '체류 시간(분)', type: 'number' },
-    { key: 'stop_order', label: '방문 순서', type: 'number' },
-    { key: 'note', label: '경유지 메모', type: 'text', isTextArea: true },
-  ]
 };
 
 export default function AdminDataEditorPage() {

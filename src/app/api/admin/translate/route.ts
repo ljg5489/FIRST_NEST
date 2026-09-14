@@ -4,11 +4,15 @@
 import { NextResponse } from 'next/server';
 import { translatePlaceInfo } from '@/lib/openai';
 
+import {guardAdminRequest} from '@/lib/admin-auth';
+
 export async function POST(request: Request) {
+  const denied = await guardAdminRequest(request);
+  if (denied) return denied;
   try {
     const { name_ko, address } = await request.json();
 
-    if (!name_ko) {
+    if (typeof name_ko !== 'string' || !name_ko.trim() || name_ko.length > 200 || (address !== undefined && address !== null && (typeof address !== 'string' || address.length > 1000))) {
       return NextResponse.json({ error: '한국어 이름이 없습니다.' }, { status: 400 });
     }
 

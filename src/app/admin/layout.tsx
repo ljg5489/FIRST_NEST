@@ -3,12 +3,14 @@
 
 import React from 'react';
 import Link from 'next/link';
+import {requireAdminPage} from '@/lib/admin-auth';
 
-export default function AdminLayout({
+export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  await requireAdminPage();
   return (
     <div className="min-h-screen bg-[#14151A] text-[#E0E2E8] antialiased flex selection:bg-[#CEFF00] selection:text-black">
       

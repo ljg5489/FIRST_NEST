@@ -4,12 +4,17 @@
 import { NextResponse } from 'next/server';
 import { generateMissingPlaceData } from '@/lib/openai';
 import { getSupabaseAdmin } from '@/services/supabase/admin';
+import {UUID} from '@/lib/itinerary';
+
+import {guardAdminRequest} from '@/lib/admin-auth';
 
 export async function POST(request: Request) {
+  const denied = await guardAdminRequest(request);
+  if (denied) return denied;
   try {
     const { id, name_ko, address } = await request.json();
 
-    if (!id || !name_ko) {
+    if (typeof id !== 'string' || !UUID.test(id) || typeof name_ko !== 'string' || !name_ko.trim() || name_ko.length > 200 || (address !== undefined && address !== null && (typeof address !== 'string' || address.length > 1000))) {
       return NextResponse.json({ success: false, error: 'ID와 관광지 이름이 필요합니다.' }, { status: 400 });
     }
 

@@ -26,6 +26,8 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
   }
 
   const params = await searchParams;
+  const {data: savedCourses, error: coursesError} = await supabase.from('courses')
+    .select('id,title,updated_at').eq('user_id',userId).order('updated_at',{ascending:false}).limit(100);
   const { data: consents } = await supabase
     .from("user_consents")
     .select(
@@ -58,7 +60,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
       ) : null}
       {error ? (
         <p role="alert" className="mt-6 rounded-md bg-[#fff0ed] px-4 py-3 text-sm text-[#9f321f]">
-          {error === "confirmation"
+          {error === "admin-only" ? "관리자 계정만 접근할 수 있습니다." : error === "confirmation"
             ? "확인 문구를 정확히 입력해 주세요."
             : error === "consent"
               ? "필수 확인 및 동의 항목을 모두 선택해 주세요."
@@ -68,6 +70,11 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
         </p>
       ) : null}
 
+      <section className="soft-card mt-6 rounded-xl p-5">
+        <h2 className="text-lg font-bold">내 저장 코스</h2>
+        {coursesError ? <p role="alert" className="mt-3">저장한 코스를 불러오지 못했습니다. 잠시 후 다시 열어 주세요.</p> : savedCourses?.length ? <ul className="mt-3 grid gap-3">{savedCourses.map(course => <li key={course.id}><a className="flex justify-between gap-3 rounded border p-3" href={`/results?courseId=${course.id}`}><span className="font-bold">{course.title}</span><span className="text-sm">{new Date(course.updated_at).toLocaleDateString('ko-KR')}</span></a></li>)}</ul> : <p className="mt-3 text-sm">아직 저장한 코스가 없습니다. 추천 결과에서 계정에 저장해 주세요.</p>}
+        <a href="/recommend" className="primary-button mt-4">새 여행 추천받기</a>
+      </section>
       <div className="mt-6 grid gap-5 lg:grid-cols-2">
         <section className="soft-card rounded-xl p-5 sm:p-6">
           <h2 className="text-lg font-black">로그인 정보</h2>

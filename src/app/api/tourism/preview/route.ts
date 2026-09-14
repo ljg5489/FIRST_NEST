@@ -6,7 +6,11 @@ import { fetchChungnamTouristSpots } from '@/services/tour-api/area';
 import { fetchSystemCodes } from '@/services/tour-api/systemcode';
 import { getGroupedSystemCodes } from '@/services/tour-api/parseSystemCode';
 
+import {guardAdminRequest} from '@/lib/admin-auth';
+
 export async function GET(request: Request) {
+  const denied = await guardAdminRequest(request);
+  if (denied) return denied;
   try {
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type') || 'spots'; 

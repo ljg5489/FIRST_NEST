@@ -3,6 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/services/supabase/admin';
+import {isAdminTable} from '@/lib/admin-policy';
 
 function escapeCsvField(val: any): string {
   if (val === null || val === undefined) return '';
@@ -14,10 +15,15 @@ function escapeCsvField(val: any): string {
   return str;
 }
 
+import {guardAdminRequest} from '@/lib/admin-auth';
+
 export async function GET(request: NextRequest) {
+  const denied = await guardAdminRequest(request);
+  if (denied) return denied;
   try {
     const { searchParams } = new URL(request.url);
     const table = searchParams.get('table');
+    if (!isAdminTable(table)) return NextResponse.json({error:'허용되지 않은 테이블입니다.'},{status:400});
 
     if (!table) {
       return NextResponse.json({ error: '테이블 파라미터가 필요합니다.' }, { status: 400 });

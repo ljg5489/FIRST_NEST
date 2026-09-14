@@ -3,10 +3,16 @@
 
 import { NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/services/supabase/admin';
+import {validAdminUpdate} from '@/lib/admin-policy';
+
+import {guardAdminRequest} from '@/lib/admin-auth';
 
 export async function POST(request: Request) {
+  const denied = await guardAdminRequest(request);
+  if (denied) return denied;
   try {
     const { id, name_en, address_en } = await request.json();
+    if (!validAdminUpdate('places',id,{name_en,address_en:address_en??null})) return NextResponse.json({error:'잘못된 값입니다.'},{status:400});
 
     if (!id || !name_en) {
       return NextResponse.json({ error: '필수 데이터가 누락되었습니다.' }, { status: 400 });

@@ -3,10 +3,16 @@
 
 import { NextResponse } from 'next/server';
 import { getSupabaseAdmin } from '@/services/supabase/admin';
+import {isAdminTable} from '@/lib/admin-policy';
+
+import {guardAdminRequest} from '@/lib/admin-auth';
 
 export async function POST(request: Request) {
+  const denied = await guardAdminRequest(request);
+  if (denied) return denied;
   try {
     const { table } = await request.json();
+    if (!isAdminTable(table)) return NextResponse.json({error:'허용되지 않은 테이블입니다.'},{status:400});
     const supabaseAdmin = getSupabaseAdmin();
 
     if (!supabaseAdmin) {

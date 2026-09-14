@@ -33,6 +33,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# Local audit snapshots and research caches
+/.codex-tmp/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

@@ -119,6 +119,20 @@ function formatDate(date: string | null | undefined) {
   return date.replaceAll("-", ".");
 }
 
+function makeExploreHref(params: Record<string, string | null | undefined>) {
+  const searchParams = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value) {
+      searchParams.set(key, value);
+    }
+  });
+
+  const query = searchParams.toString();
+
+  return query ? `/explore?${query}` : "/explore";
+}
+
 function FeatureCard({
   href,
   label,
@@ -203,7 +217,10 @@ export default async function Home() {
 
   const curationCards = [
     {
-      href: "/explore",
+      href: makeExploreHref({
+        available: "today",
+        region: heroPlace?.region,
+      }),
       label: "오늘 갈 수 있는 곳",
       title: heroPlace?.name ?? "운영정보 확인 중",
       description:
@@ -215,7 +232,10 @@ export default async function Home() {
       imageUrl: heroPlace?.imageUrl,
     },
     {
-      href: "/explore",
+      href: makeExploreHref({
+        event: "this-week",
+        region: thisWeekEvent ? getRegionFromAddress(thisWeekEvent.address, "") : null,
+      }),
       label: "이번 주 행사",
       title: thisWeekEvent?.title ?? "행사 데이터 준비 중",
       description: thisWeekEvent
@@ -227,7 +247,10 @@ export default async function Home() {
       imageUrl: thisWeekEvent ? getEventImage(thisWeekEvent) : null,
     },
     {
-      href: "/explore",
+      href: makeExploreHref({
+        region: secondaryPlace?.region,
+        theme: secondaryPlace?.category,
+      }),
       label: "충남 추천 관광지",
       title: secondaryPlace?.name ?? "관광지 데이터 준비 중",
       description:

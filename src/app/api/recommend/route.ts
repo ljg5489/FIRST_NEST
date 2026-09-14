@@ -7,16 +7,18 @@
 
 import { NextResponse } from "next/server";
 import { buildTravelCourse, TravelerInput } from "@/lib/course-builder";
+import {allowAIRequest} from '@/lib/ai-rate-limit';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { traveler } = body as { traveler: TravelerInput };
 
-    if (!traveler) {
+    if (!traveler || !Number.isInteger(traveler.days) || traveler.days < 1 || traveler.days > 7 || [traveler.name,traveler.country,traveler.focus].some(v => v !== undefined && (typeof v !== 'string' || v.length > 300))) {
       return NextResponse.json({ error: "여행자 정보가 부족합니다." }, { status: 400 });
     }
 
+    if (!await allowAIRequest('recommend')) return NextResponse.json({error:'잠시 후 다시 추천받아 주세요.'},{status:429});
     const course = await buildTravelCourse(traveler);
 
     if (!course) {
