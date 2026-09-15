@@ -62,6 +62,10 @@ function compareText(a: string | null | undefined, b: string | null | undefined)
   return koCollator.compare(a ?? "", b ?? "");
 }
 
+function formatCount(value: number) {
+  return value.toLocaleString("ko-KR");
+}
+
 export function ExploreClient({ attractions, interests, initialFilters }: ExploreClientProps) {
   const [keyword, setKeyword] = useState(initialFilters?.keyword ?? "");
   const [selectedRegion, setSelectedRegion] = useState(
@@ -148,6 +152,25 @@ export function ExploreClient({ attractions, interests, initialFilters }: Explor
 
   const highlightedAttractions = sortedAttractions.slice(0, visibleCount);
   const canShowMore = visibleCount < sortedAttractions.length;
+  const availableTodayCount = attractions.filter(
+    (attraction) => attraction.operationStatus === "available_today",
+  ).length;
+  const thisWeekEventCount = attractions.filter(
+    (attraction) => attraction.hasThisWeekEvent,
+  ).length;
+  const imageCount = attractions.filter((attraction) => attraction.imageUrl).length;
+  const coordinateCount = attractions.filter(
+    (attraction) => attraction.latitude && attraction.longitude,
+  ).length;
+  const activeFilterLabels = [
+    keyword.trim() ? `키워드: ${keyword.trim()}` : null,
+    selectedRegion !== "전체 지역" ? selectedRegion : null,
+    selectedTheme !== "전체 테마" ? selectedTheme : null,
+    onlyAvailableToday ? "오늘 방문 가능" : null,
+    onlyThisWeekEvent ? "이번 주 행사" : null,
+    dataFilter === "with_image" ? "이미지 있음" : null,
+    dataFilter === "with_coordinate" ? "좌표 있음" : null,
+  ].filter(Boolean);
 
   const resetFilters = () => {
     setKeyword("");
@@ -241,7 +264,12 @@ export function ExploreClient({ attractions, interests, initialFilters }: Explor
               setVisibleCount(8);
             }}
           >
-            오늘 갈 수 있는 곳
+            <span className="flex items-center justify-between gap-3">
+              오늘 갈 수 있는 곳
+              <span className="rounded-md bg-white/20 px-2 py-1 text-xs">
+                {formatCount(availableTodayCount)}
+              </span>
+            </span>
             <span className="mt-1 block text-xs font-bold opacity-80">
               {hasAnyOperationInfo
                 ? "운영정보가 확인된 장소만 보기"
@@ -261,7 +289,12 @@ export function ExploreClient({ attractions, interests, initialFilters }: Explor
               setVisibleCount(8);
             }}
           >
-            이번 주 행사
+            <span className="flex items-center justify-between gap-3">
+              이번 주 행사
+              <span className="rounded-md bg-white/20 px-2 py-1 text-xs">
+                {formatCount(thisWeekEventCount)}
+              </span>
+            </span>
             <span className="mt-1 block text-xs font-bold opacity-80">
               {hasAnyThisWeekEvent
                 ? "행사 지역과 연결된 관광지만 보기"
@@ -284,10 +317,31 @@ export function ExploreClient({ attractions, interests, initialFilters }: Explor
             ))}
           </select>
         </div>
-        <p className="mt-3 text-sm font-bold text-[#2f7f8f]">
-          검색 결과 {filteredAttractions.length.toLocaleString("ko-KR")}개 ·{" "}
-          {sortOptions.find((option) => option.value === sortOption)?.label}
-        </p>
+        <div className="mt-4 grid gap-2 text-sm font-bold text-[#5d675f] sm:grid-cols-3">
+          <span className="rounded-md bg-[#f7f8f5] px-3 py-2">
+            이미지 {formatCount(imageCount)}개
+          </span>
+          <span className="rounded-md bg-[#f7f8f5] px-3 py-2">
+            좌표 {formatCount(coordinateCount)}개
+          </span>
+          <span className="rounded-md bg-[#f7f8f5] px-3 py-2">
+            운영정보 {formatCount(attractions.filter((item) => item.hasOperationInfo).length)}개
+          </span>
+        </div>
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-sm font-bold">
+          <span className="text-[#2f7f8f]">
+            검색 결과 {formatCount(filteredAttractions.length)}개 ·{" "}
+            {sortOptions.find((option) => option.value === sortOption)?.label}
+          </span>
+          {activeFilterLabels.map((label) => (
+            <span
+              key={label}
+              className="rounded-md bg-[#eef6f2] px-2.5 py-1 text-xs text-[#174d3c]"
+            >
+              {label}
+            </span>
+          ))}
+        </div>
       </section>
 
       {sortedAttractions.length > 0 ? (
@@ -332,6 +386,9 @@ export function ExploreClient({ attractions, interests, initialFilters }: Explor
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {highlightedAttractions.map((attraction) => {
               const score = getDisplayScore(attraction);
+              const statusLabel = attraction.hasThisWeekEvent
+                ? attraction.eventLabel ?? "이번 주 행사"
+                : attraction.operationLabel ?? "운영정보 확인 필요";
 
               return (
                 <a
@@ -350,6 +407,16 @@ export function ExploreClient({ attractions, interests, initialFilters }: Explor
                     <div className="h-full w-full bg-[linear-gradient(135deg,#e7f0fb,#e7f5eb)]" />
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                  <div className="absolute left-3 top-3 flex flex-wrap gap-2">
+                    <span className={`rounded-md px-2.5 py-1 text-xs font-black ${getScoreTone(score)}`}>
+                      데이터 점수 {score}
+                    </span>
+                    {attraction.operationStatus === "available_today" ? (
+                      <span className="rounded-md bg-white px-2.5 py-1 text-xs font-black text-[#174d3c]">
+                        오늘 가능
+                      </span>
+                    ) : null}
+                  </div>
                   <div className="absolute inset-x-0 bottom-0 p-4 text-white">
                     <h3 className="line-clamp-2 font-black leading-6 drop-shadow">
                       {attraction.name}
@@ -358,9 +425,7 @@ export function ExploreClient({ attractions, interests, initialFilters }: Explor
                       {attraction.region} · {attraction.category} · 데이터 점수 {score}
                     </p>
                     <p className="mt-1 line-clamp-1 text-xs font-bold text-white/80">
-                      {attraction.hasThisWeekEvent
-                        ? attraction.eventLabel ?? "이번 주 행사 지역"
-                        : attraction.operationLabel ?? "운영정보 확인 필요"}
+                      {statusLabel}
                     </p>
                   </div>
                 </a>
@@ -383,8 +448,12 @@ export function ExploreClient({ attractions, interests, initialFilters }: Explor
       ) : null}
 
       {filteredAttractions.length === 0 ? (
-        <section className="soft-card mt-6 rounded-lg p-6 text-sm text-[#667165]">
-          {emptyMessage}
+        <section className="soft-card mt-6 rounded-lg p-6">
+          <h2 className="text-xl font-black text-[#17211b]">조건에 맞는 결과가 없습니다.</h2>
+          <p className="mt-3 text-sm leading-6 text-[#667165]">{emptyMessage}</p>
+          <button type="button" className="primary-button mt-5 border-0" onClick={resetFilters}>
+            전체 관광지 다시 보기
+          </button>
         </section>
       ) : null}
     </>
