@@ -1,4 +1,4 @@
-﻿// 파일 위치: src/app/admin/layout.tsx
+// 파일 위치: src/app/admin/layout.tsx
 // 파일 명: layout.tsx
 
 import React from 'react';
@@ -19,10 +19,10 @@ export default async function AdminLayout({
         <div className="mb-8">
           <Link href="/admin" className="flex items-center gap-3 group">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#CEFF00] to-[#9db800] flex items-center justify-center text-black font-extrabold shadow-[0_0_15px_rgba(206,255,0,0.3)] group-hover:scale-105 transition-transform">
-              FN
+              T
             </div>
             <div>
-              <h1 className="text-lg font-extrabold tracking-wide text-white">FIRST NEST</h1>
+              <h1 className="text-lg font-extrabold tracking-wide text-white">travel with me</h1>
               <p className="text-[10px] font-bold text-[#848A9C] uppercase tracking-wider">Admin Console</p>
             </div>
           </Link>
@@ -103,7 +103,7 @@ export default async function AdminLayout({
         </nav>
         
         <div className="mt-6 pt-6 border-t border-[#2C2E38] text-xs text-[#5C657D] font-mono">
-          <div>Project: TRAVEL WITH ME</div>
+          <div>Project: travel with me</div>
           <div className="mt-1">v1.0.0-MVP</div>
         </div>
       </aside>

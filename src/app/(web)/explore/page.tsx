@@ -111,15 +111,16 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
   const eventRegions = new Set(
     (festivals as any[])
       .filter(isThisWeekEvent)
-      .map((event) => getRegionFromAddress(event.address, ""))
+      .map((event) => getRegionFromAddress(event.address, "").replace(/(시|군)$/, ""))
       .filter(Boolean),
   );
 
   const exploreAttractions: Attraction[] = attractions.map((place: any) => {
     const name = place.name_ko ?? place.name ?? "관광지";
     const address = place.address ?? "주소 정보 없음";
-    const region = place.region ?? getRegionFromAddress(place.address, "충남");
-    const category = place.category ?? place.place_tags?.[0]?.tag ?? "관광지";
+    const region = (place.region ?? getRegionFromAddress(place.address, "충남")).replace(/(시|군)$/, '');
+    const categoryLabels: Record<string,string> = {HS:'역사',NA:'자연',EX:'체험',VE:'문화',FD:'음식',AC:'숙박',SH:'쇼핑',LS:'레저',EV:'축제'};
+    const category = categoryLabels[(place.category_code || '').slice(0,2)] ?? place.category ?? '여행지';
     const operationInfo = getOperationInfo(place);
     const hasThisWeekEvent = eventRegions.has(region);
 
@@ -150,15 +151,7 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
 
   return (
     <main className="page-shell">
-      <p className="section-label">/explore</p>
-      <h1 className="mt-2 text-2xl font-bold sm:text-3xl">관광지 탐색</h1>
-      <p className="mt-3 max-w-2xl text-[#4f5b52]">
-        지역, 테마, 키워드, 운영정보, 행사 여부 기준으로 충남 관광지를 좁혀보는 화면입니다.
-        데이터가 부족한 항목은 방문 전 확인이 필요하도록 별도 문구로 표시합니다.
-      </p>
-      <p className="mt-2 text-sm font-bold text-[#2f7f8f]">
-        현재 표시 데이터 {exploreAttractions.length.toLocaleString("ko-KR")}개
-      </p>
+      <div className="page-heading"><p className="eyebrow">FIND YOUR NEXT PLACE</p><h1>마음이 가는 곳을 찾아보세요.</h1><p>익숙한 동네부터 처음 만나는 풍경까지, 충남의 다양한 여행지.</p></div>
       <ExploreClient
         attractions={exploreAttractions}
         interests={options.interests}

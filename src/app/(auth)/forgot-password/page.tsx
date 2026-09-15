@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { AuthForm } from "@/features/auth/ui/AuthForm";
 
-export const metadata: Metadata = { title: "비밀번호 찾기 | TRAVEL WITH ME" };
+export const metadata: Metadata = { title: "비밀번호 찾기 | travel with me" };
 
 export default function ForgotPasswordPage() {
   return (

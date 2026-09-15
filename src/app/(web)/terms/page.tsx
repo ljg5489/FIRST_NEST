@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { TERMS_VERSION } from "@/features/auth/constants";
 import { legalOperator } from "@/features/legal/config";
 
-export const metadata: Metadata = { title: "이용약관 | TRAVEL WITH ME" };
+export const metadata: Metadata = { title: "이용약관 | travel with me" };
 
 export default function TermsPage() {
   return (
@@ -14,7 +14,7 @@ export default function TermsPage() {
       <article className="soft-card mt-6 grid gap-7 rounded-xl p-5 text-sm leading-7 text-[#3d4941] sm:p-8">
         <section>
           <h2 className="text-lg font-black text-[#17211b]">1. 목적과 운영자</h2>
-          <p className="mt-2">이 약관은 {legalOperator.name}(이하 “운영자”)가 제공하는 TRAVEL WITH ME의 관광정보 조회, AI 여행 코스 추천 및 코스 저장 서비스 이용 조건을 정합니다.</p>
+          <p className="mt-2">이 약관은 {legalOperator.name}(이하 “운영자”)가 제공하는 travel with me의 관광정보 조회, AI 여행 코스 추천 및 코스 저장 서비스 이용 조건을 정합니다.</p>
         </section>
         <section>
           <h2 className="text-lg font-black text-[#17211b]">2. 계정</h2>

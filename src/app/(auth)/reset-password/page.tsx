@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { AuthForm } from "@/features/auth/ui/AuthForm";
 
-export const metadata: Metadata = { title: "새 비밀번호 | TRAVEL WITH ME" };
+export const metadata: Metadata = { title: "새 비밀번호 | travel with me" };
 export const dynamic = "force-dynamic";
 
 export default function ResetPasswordPage() {

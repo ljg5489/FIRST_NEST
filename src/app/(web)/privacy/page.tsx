@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { PRIVACY_VERSION } from "@/features/auth/constants";
 import { isLegalOperatorConfigured, legalOperator } from "@/features/legal/config";
 
-export const metadata: Metadata = { title: "개인정보 처리방침 | TRAVEL WITH ME" };
+export const metadata: Metadata = { title: "개인정보 처리방침 | travel with me" };
 
 export default function PrivacyPage() {
   const isConfigured = isLegalOperatorConfigured();

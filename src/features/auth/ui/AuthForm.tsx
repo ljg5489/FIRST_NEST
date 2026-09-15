@@ -82,7 +82,7 @@ export function AuthForm({ mode, next = "/account" }: AuthFormProps) {
   }
 
   return (
-    <form action={formAction} className="grid gap-4" onSubmit={handleSubmit}>
+    <form action={formAction} className="auth-form grid gap-4" onSubmit={handleSubmit}>
       {mode === "login" ? <input type="hidden" name="next" value={next} /> : null}
 
       {needsEmail ? (
@@ -119,7 +119,7 @@ export function AuthForm({ mode, next = "/account" }: AuthFormProps) {
             name="password"
             minLength={8}
             autoComplete={mode === "login" ? "current-password" : "new-password"}
-            placeholder="영문·숫자 포함 8자 이상"
+            placeholder={mode === 'login' ? '비밀번호를 입력해 주세요' : '영문·숫자 포함 8자 이상'}
             onChange={(event) => setPassword(event.target.value)}
             required
           />
@@ -133,6 +133,7 @@ export function AuthForm({ mode, next = "/account" }: AuthFormProps) {
             className="field-control"
             type="password"
             name="passwordConfirmation"
+            placeholder="비밀번호를 한 번 더 입력해 주세요"
             minLength={8}
             autoComplete="new-password"
             aria-describedby={showPasswordMismatch ? "password-confirmation-error" : undefined}

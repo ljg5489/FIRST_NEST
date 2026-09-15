@@ -9,7 +9,7 @@ import { recordCurrentConsentAction } from "@/features/auth/server/actions";
 import { DeleteAccountForm } from "@/features/auth/ui/DeleteAccountForm";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
-export const metadata: Metadata = { title: "내 계정 | TRAVEL WITH ME" };
+export const metadata: Metadata = { title: "내 계정 | travel with me" };
 export const dynamic = "force-dynamic";
 
 type AccountPageProps = {

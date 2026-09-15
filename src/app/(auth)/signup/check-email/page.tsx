@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "이메일 인증 안내 | TRAVEL WITH ME",
+  title: "이메일 인증 안내 | travel with me",
 };
 
 export default function SignupCheckEmailPage() {
