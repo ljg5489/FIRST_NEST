@@ -126,7 +126,7 @@ export default async function AttractionDetailPage({ params }: AttractionDetailP
     new Set(
       (attraction.place_tags ?? [])
         .map((tag) => tag.tag)
-        .filter((tag): tag is string => Boolean(tag)),
+        .filter((tag): tag is string => Boolean(tag) && !/^[A-Z]{2}\d+$/.test(tag || "")),
     ),
   ).slice(0, 8);
   const facilities = (attraction.place_facilities ?? [])
@@ -198,7 +198,7 @@ export default async function AttractionDetailPage({ params }: AttractionDetailP
               {category}
             </span>
             <span className="rounded-md bg-[#f7f8f5] px-3 py-2 text-sm font-black text-[#5d675f]">
-              {hasMapCoordinate ? "지도에서 위치 보기" : "위치 확인 필요"}
+              {hasMapCoordinate ? "위치 확인됨" : "위치 확인 필요"}
             </span>
           </div>
           <p className="mt-4 leading-7 text-[#4f5b52]">
@@ -288,7 +288,7 @@ export default async function AttractionDetailPage({ params }: AttractionDetailP
                 <div key={`${facility.facility_type}-${index}`} className="rounded-md bg-[#f7f8f5] p-4">
                   <p className="font-black">{facility.facility_type}</p>
                   <p className="mt-1 text-sm font-bold text-[#5d675f]">
-                    {facility.is_available === false ? "확인 필요" : "이용 가능"}
+                    {facility.is_available === true ? "이용 가능" : "확인 필요"}
                   </p>
                   {facility.details ? (
                     <p className="mt-2 text-sm leading-6 text-[#667165]">{facility.details}</p>
