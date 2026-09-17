@@ -20,6 +20,7 @@ export type InterestEffect =
 
 // ============================================================
 // 실제 매핑 테이블 (mock-data.ts travelConditionOptions.interests 기준, 2026-08-20 확인)
+// 2026-09-04 전체 DB(2421행) 재분석 결과: FD(음식) 대분류 확인됨 → "로컬 음식" 매핑 추가
 // 여기만 수정하면 팀이 카테고리 체계를 바꿔도 로직은 그대로 재사용됨
 // ============================================================
 export const INTEREST_MAP: Record<string, InterestEffect[]> = {
@@ -27,9 +28,7 @@ export const INTEREST_MAP: Record<string, InterestEffect[]> = {
   자연: [{ type: "category", value: "NA" }],
   가족: [{ type: "facility", value: "baby_carriage" }],
   축제: [{ type: "festival_priority" }],
-  "로컬 음식": [
-    { type: "unsupported", reason: "places 테이블이 TourAPI 관광지 contentType만 수집해서 음식점 데이터 없음" },
-  ],
+  "로컬 음식": [{ type: "category", value: "FD" }],
   "사진 명소": [
     { type: "unsupported", reason: "평점/인기도 등 포토스팟 판단 근거 필드가 DB에 없음" },
   ],
@@ -39,5 +38,11 @@ export const INTEREST_MAP: Record<string, InterestEffect[]> = {
   // 문화유산: [{ type: "category", value: "VE" }],
 };
 
-// 전체 카테고리 목록 (폴백용) — 코드 체계 자체가 바뀌면 여기만 수정
-export const ALL_CATEGORIES: CategoryCode[] = ["HS", "NA", "EX", "VE"];
+// 코스 추천에 쓸 카테고리 전체 목록 (폴백용)
+// ⚠️ 2026-09-04 전체 DB 재분석 결과, DB에는 HS/NA/EX/VE/FD 외에도
+// AC(숙박)/SH(쇼핑)/EV(축제)/LS(레포츠)/C0(추천코스)가 존재함을 확인.
+// 이 중 AC(숙박)/SH(쇼핑)/C0(추천코스)는 "방문 코스"에 넣을 성격이 아니라서 의도적으로 제외.
+// EV(축제)는 별도로 "축제" 관심사(festival_priority)가 place_events 조회로 처리하고 있어서
+// 카테고리 필터에는 안 넣음 (중복 처리 방지).
+// LS(레포츠)는 포함 여부가 팀 판단 필요 — 일단 관광 코스 성격상 포함해둠, 필요시 제외.
+export const ALL_CATEGORIES: CategoryCode[] = ["HS", "NA", "EX", "VE", "FD", "LS"];
