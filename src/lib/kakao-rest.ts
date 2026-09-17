@@ -1,55 +1,22 @@
-// 파일 위치: src/lib/kakao-rest.ts
-// 파일 명: kakao-rest.ts
-// 용도 (백엔드): AI가 코스를 추천하기 전에 "A 관광지에서 B 관광지까지 차로 몇 분이 걸리지?"를 파악하기 위해, 
-// 서버 내부에서 카카오 모빌리티 서버로 시간/거리 데이터를 요청하고 계산하는 두뇌
-
-/**
- * 카카오 모빌리티(자동차 길찾기) REST API를 호출하여 두 좌표 간의 거리와 시간을 계산합니다.
- * @param origin 출발지 { lat, lng }
- * @param destination 도착지 { lat, lng }
- * @returns { distance: km, duration: 분 }
- */
-export async function getDrivingRoute(
-  origin: { lat: number; lng: number },
-  destination: { lat: number; lng: number }
-) {
-  const KAKAO_REST_KEY = process.env.KAKAO_REST_API_KEY;
-
-  if (!KAKAO_REST_KEY) {
-    console.error('[오류] KAKAO_REST_API_KEY가 설정되지 않았습니다.');
-    return null;
-  }
-
-  // 카카오 모빌리티 길찾기 API 엔드포인트 (좌표는 경도(X), 위도(Y) 순서로 쉼표 구분)
-  const url = `https://apis-navi.kakaomobility.com/v1/directions?origin=${origin.lng},${origin.lat}&destination=${destination.lng},${destination.lat}`;
-
+import { fallbackRoute, type RouteEstimate } from './travel-planning.ts';
+let blockedUntil=0;
+export async function getDrivingRoute(origin:{lat:number;lng:number},destination:{lat:number;lng:number}):Promise<RouteEstimate> {
+  const fallback=fallbackRoute(origin,destination,'렌터카');
+  const key=process.env.KAKAO_REST_API_KEY?.trim();
+  if(!key) return {...fallback,reason:'missing_key'};
+  if(Date.now()<blockedUntil) return {...fallback,reason:'authorization'};
   try {
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        Authorization: `KakaoAK ${KAKAO_REST_KEY}`,
-        'Content-Type': 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`카카오 REST API 호출 실패: ${response.status}`);
+    const url=new URL('https://apis-navi.kakaomobility.com/v1/directions');
+    url.searchParams.set('origin',`${origin.lng},${origin.lat}`);
+    url.searchParams.set('destination',`${destination.lng},${destination.lat}`);
+    url.searchParams.set('summary','true');
+    const response=await fetch(url,{headers:{Authorization:`KakaoAK ${key}`},signal:AbortSignal.timeout(5000),cache:'no-store'});
+    if(!response.ok) {
+      if(response.status===401||response.status===403) blockedUntil=Date.now()+60000;
+      return {...fallback,reason:response.status===401||response.status===403?'authorization':`http_${response.status}`};
     }
-
-    const data = await response.json();
-    
-    // 경로 탐색 결과가 있는 경우
-    if (data.routes && data.routes.length > 0) {
-      const summary = data.routes[0].summary;
-      return {
-        distance: (summary.distance / 1000).toFixed(1), // 미터를 킬로미터로 변환 (예: 12.5)
-        duration: Math.ceil(summary.duration / 60), // 초를 분으로 변환 후 올림 (예: 45)
-      };
-    }
-    
-    return null;
-  } catch (error) {
-    console.error('[오류] 길찾기 계산 중 에러 발생:', error);
-    return null;
-  }
+    const data=await response.json();const route=data.routes?.[0],summary=route?.summary;
+    if(route?.result_code!==0||!summary||!Number.isFinite(summary.distance)||!Number.isFinite(summary.duration)||summary.distance<0||summary.duration<0) return {...fallback,reason:'no_route'};
+    return {distance:summary.distance/1000,duration:Math.ceil(summary.duration/60),source:'kakao',toll:Number.isFinite(summary.fare?.toll)?summary.fare.toll:undefined,taxi:Number.isFinite(summary.fare?.taxi)?summary.fare.taxi:undefined};
+  } catch {return {...fallback,reason:'unavailable'};}
 }

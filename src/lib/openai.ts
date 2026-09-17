@@ -14,6 +14,7 @@ export interface TravelerProfile {
   country: string;
   focus: string;
   duration: string;
+  language?: string;
 }
 
 /**
@@ -26,7 +27,8 @@ export async function generateCourseStory(
   traveler: TravelerProfile,
   placeNames: string[]
 ) {
-  const fallback = `[ENGLISH]\nThis itinerary (${placeNames.join(" → ")}) was selected to match ${traveler.focus || "your travel preferences"}.\n\n[KOREAN]\n이 일정(${placeNames.join(" → ")})은 ${traveler.focus || "여행 취향"}에 맞춰 선정되었습니다.`;
+  const fallbackText:Record<string,string>={Korean:'선택한 조건으로 여행 일정을 구성했습니다. 운영시간과 실제 이용 요금은 방문 전에 확인해 주세요.',English:'Your itinerary follows the selected preferences. Please check opening hours and actual prices before visiting.',Japanese:'選択した条件で旅行日程を作成しました。訪問前に営業時間と実際の料金をご確認ください。',Vietnamese:'Lịch trình được lập theo các lựa chọn của bạn. Vui lòng kiểm tra giờ mở cửa và giá thực tế trước khi đến.'};
+  const fallback = fallbackText[traveler.language || 'Korean'] || fallbackText.Korean;
 
   if (!process.env.OPENAI_API_KEY) {
     console.warn("[경고] OPENAI_API_KEY가 없어 기본 추천 설명을 반환합니다.");
@@ -66,15 +68,10 @@ export async function generateCourseStory(
 
     Write a short personalized explanation (3–4 sentences) describing why this itinerary matches the traveler's interests and travel style.
 
+    Write only in the requested language: ${traveler.language || "Korean"}. Do not claim budget compliance, accessibility, seasonal availability or actual transport verification.
     # OUTPUT FORMAT
 
-    Return exactly this format.
-
-    [ENGLISH]
-    (3–4 sentence English explanation)
-
-    [KOREAN]
-    (A natural Korean translation of the English explanation. Do not shorten or expand the meaning.)
+    Return 3-4 sentences in the requested language. Do not use bilingual sections.
   `;
 
   try {

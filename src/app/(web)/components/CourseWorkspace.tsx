@@ -1,4 +1,5 @@
 'use client';
+import {TravelEstimate} from './TravelEstimate';
 
 import {useEffect, useState} from 'react';
 import KakaoMap from '@/features/map/ui/KakaoMap';
@@ -113,6 +114,7 @@ export function CourseWorkspace({initialItinerary, draftId, courseId, mapOnly = 
           {draft.courseId && <a href={`/results?courseId=${draft.courseId}`} className={button}>마지막 저장본 열기</a>}
         </div>
       </div>
+      <TravelEstimate itinerary={draft.itinerary} />
       {mapOnly && <KakaoMap places={itineraryMapPlaces(draft.itinerary)} />}
       {draft.itinerary.days.map((day, di) => <section key={day.day} className="soft-card rounded-xl p-5">
         <h2 className="text-lg font-bold">{day.day} · {day.region}</h2>

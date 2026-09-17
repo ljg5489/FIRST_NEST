@@ -25,7 +25,7 @@ function extractRegion(address: string | null | undefined): string {
 export interface EditableItineraryDay {
   day: string;
   region: string;
-  attractions: Array<{ id: string; name: string; region: string; address?: string; latitude?: number; longitude?: number; nearbyEvents?: string[] }>;
+  attractions: Array<{ id: string; name: string; region: string; address?: string; latitude?: number; longitude?: number; nearbyEvents?: string[]; categoryCode?: string }>;
 }
 
 export function adaptToEditableItineraryDays(built: BuiltCourse): EditableItineraryDay[] {
@@ -49,6 +49,7 @@ export function adaptToEditableItineraryDays(built: BuiltCourse): EditableItiner
         );
         return {
           id: stop.place_id,
+          categoryCode: place?.category_code ?? undefined,
           name: stop.place_name,
           region: extractRegion(place?.address),
           address: place?.address ?? undefined,
@@ -81,9 +82,9 @@ export function adaptToCostSummary(
   return {
     title: `${regions.join("-")} ${traveler.days}일 코스`,
     interests: traveler.focus || "선택 안 함",
-    totalEstimatedCost: 0, // TODO: DB에 비용 필드 없음 — 팀 논의 필요
-    perPersonEstimatedCost: 0,
-    remainingBudget: 0,
-    costAvailable: false,
+    totalEstimatedCost: built.cost.total,
+    perPersonEstimatedCost: built.cost.perPerson,
+    remainingBudget: built.cost.remaining,
+    costAvailable: true,
   };
 }
