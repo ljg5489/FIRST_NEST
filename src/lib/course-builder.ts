@@ -69,7 +69,7 @@ async function getEventsForPlaces(placeIds: string[]) {
   const today = new Date().toISOString().split("T")[0];
 
   const { data, error } = await supabase
-    .from("place_events") // ⚠️ 하경님 표현 기준 복수형. 정확한 스펠링 재확인 예정
+    .from("place_events")
     .select(
       `
       place_id,
@@ -96,6 +96,86 @@ async function getEventsForPlaces(placeIds: string[]) {
   return byPlace;
 }
 
+function haversineDistance(a: [number, number], b: [number, number]): number {
+  const R = 6371; // km
+  const [lat1, lon1] = a;
+  const [lat2, lon2] = b;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+
+// 후보군을 day별로 "지리적으로 가까운 것끼리" 묶어서 배분.
+// 기존엔 카테고리/축제 우선순위로 정렬된 후보를 앞에서부터 그냥 잘라 day에 나눴는데,
+// 그러면 하루 동선이 여러 지역에 흩어질 수 있음 → 하루는 한 지역 위주로 돌게끔 개선.
+//
+// 동작:
+// 1. 이번 날의 "시작점"은 지금까지 선택된 모든 장소의 중심에서 가장 먼 후보로 선택
+//    (day끼리 지역이 최대한 안 겹치게)
+// 2. 그 시작점 기준으로 최근접 이웃을 순서대로 채워서 하루 분량을 완성
+// 3. 다음 날도 동일하게 반복
+//
+// ⚠️ 트레이드오프: 완전히 거리 기준이라, 카테고리/축제 우선순위로 앞쪽에 있던 후보가
+// 지리적으로 멀면 뒤로 밀릴 수 있음. "지역 응집도"를 "선호 우선순위"보다 우선한 설계.
+function clusterPlacesByDay(
+  orderedCandidates: any[],
+  days: number,
+  placesPerDay: number
+): any[][] {
+  const pool = [...orderedCandidates];
+  const dayGroups: any[][] = [];
+
+  for (let d = 0; d < days; d++) {
+    if (pool.length === 0) break;
+
+    let seedIdx = 0;
+
+    if (dayGroups.length > 0) {
+      const chosenSoFar = dayGroups.flat();
+      const centroid = {
+        lat: chosenSoFar.reduce((s, p) => s + p.latitude, 0) / chosenSoFar.length,
+        lng: chosenSoFar.reduce((s, p) => s + p.longitude, 0) / chosenSoFar.length,
+      };
+
+      let maxDist = -1;
+      pool.forEach((p, idx) => {
+        const dist = haversineDistance([centroid.lat, centroid.lng], [p.latitude, p.longitude]);
+        if (dist > maxDist) {
+          maxDist = dist;
+          seedIdx = idx;
+        }
+      });
+    }
+
+    const dayPlaces = [pool.splice(seedIdx, 1)[0]];
+
+    while (dayPlaces.length < placesPerDay && pool.length > 0) {
+      const last = dayPlaces[dayPlaces.length - 1];
+      let nearestIdx = 0;
+      let nearestDist = Infinity;
+
+      pool.forEach((p, idx) => {
+        const dist = haversineDistance([last.latitude, last.longitude], [p.latitude, p.longitude]);
+        if (dist < nearestDist) {
+          nearestDist = dist;
+          nearestIdx = idx;
+        }
+      });
+
+      dayPlaces.push(pool.splice(nearestIdx, 1)[0]);
+    }
+
+    dayGroups.push(dayPlaces);
+  }
+
+  return dayGroups;
+}
+
 export interface BuiltCourse {
   route: string;
   aiStory: string;
@@ -105,6 +185,7 @@ export interface BuiltCourse {
     reliability: string;
     estimatedDistance: string;
     estimatedTime: number;
+    perDay?: Array<{ day_number: number; distance: number; duration: number }>; // day별 상세 (신규)
   };
   places: any[];
   days: Array<{
@@ -159,37 +240,57 @@ export async function buildTravelCourse(traveler: TravelerInput): Promise<BuiltC
   } else {
     orderedCandidates = orderedCandidates.sort(() => 0.5 - Math.random());
   }
-  const selectedPlaces = orderedCandidates.slice(0, targetCount);
+  const preliminarySelection = orderedCandidates.slice(0, targetCount);
 
-  if (selectedPlaces.length === 0) {
+  if (preliminarySelection.length === 0) {
     return null; // DB에 유효한 관광지 데이터가 없음 — 호출부에서 404 처리
   }
 
-  const dayGroups: any[][] = [];
-  for (let d = 0; d < days; d++) {
-    dayGroups.push(selectedPlaces.slice(d * placesPerDay, d * placesPerDay + placesPerDay));
-  }
+  // day 배분: 기존 "앞에서부터 자르기" 대신 지리적 클러스터링 사용
+  // (orderedCandidates 전체를 넘겨서, targetCount 넘는 후보 중에서도 지역적으로 더 나은 조합을 고를 여지를 줌)
+  const dayGroups = clusterPlacesByDay(orderedCandidates, days, placesPerDay);
+  const selectedPlaces = dayGroups.flat(); // 클러스터링 후 실제로 선택된 전체 장소 목록
 
   const placeNames = selectedPlaces.map((p: any) => p.name_ko);
   const routeString = placeNames.join(" ➔ ");
 
   // STEP 2: Kakao REST 실거리/시간 계산
+  // ⚠️ day 경계를 넘는 구간(예: Day1 마지막 장소 → Day2 첫 장소)은 계산에서 제외.
+  // 실제로는 하루 끝나고 숙소로 복귀했다가 다음날 다시 출발하는 거라, 그 구간까지
+  // 이동거리에 합산하면 신뢰도(reliability) 계산이 왜곡됨.
   let totalDistance = 0;
   let totalDuration = 0;
   let reliability = "High";
+  const perDayMetrics: Array<{ day_number: number; distance: number; duration: number }> = [];
 
-  for (let i = 0; i < selectedPlaces.length - 1; i++) {
-    const origin = { lat: selectedPlaces[i].latitude, lng: selectedPlaces[i].longitude };
-    const destination = { lat: selectedPlaces[i + 1].latitude, lng: selectedPlaces[i + 1].longitude };
-    const routeInfo = await getDrivingRoute(origin, destination);
-    if (routeInfo) {
-      totalDistance += parseFloat(routeInfo.distance);
-      totalDuration += routeInfo.duration;
+  for (const dayPlaces of dayGroups) {
+    let dayDistance = 0;
+    let dayDuration = 0;
+
+    for (let i = 0; i < dayPlaces.length - 1; i++) {
+      const origin = { lat: dayPlaces[i].latitude, lng: dayPlaces[i].longitude };
+      const destination = { lat: dayPlaces[i + 1].latitude, lng: dayPlaces[i + 1].longitude };
+      const routeInfo = await getDrivingRoute(origin, destination);
+      if (routeInfo) {
+        dayDistance += parseFloat(routeInfo.distance);
+        dayDuration += routeInfo.duration;
+      }
     }
+
+    perDayMetrics.push({
+      day_number: perDayMetrics.length + 1,
+      distance: Number(dayDistance.toFixed(1)),
+      duration: dayDuration,
+    });
+
+    totalDistance += dayDistance;
+    totalDuration += dayDuration;
   }
 
-  if (totalDuration > days * 90) reliability = "Medium";
-  if (totalDuration > days * 150) reliability = "Low";
+  // reliability는 "하루 최대 이동시간" 기준으로 판단 (여행 전체 총합보다 하루 단위가 실제 피로도에 더 가까움)
+  const maxDayDuration = Math.max(...perDayMetrics.map((d) => d.duration), 0);
+  if (maxDayDuration > 90) reliability = "Medium";
+  if (maxDayDuration > 150) reliability = "Low";
 
   // STEP 2.5: 근처 축제 배치 조회
   const eventsByPlace = await getEventsForPlaces(selectedPlaces.map((p: any) => p.id));
@@ -214,6 +315,7 @@ export async function buildTravelCourse(traveler: TravelerInput): Promise<BuiltC
       reliability,
       estimatedDistance: totalDistance.toFixed(1),
       estimatedTime: totalDuration,
+      perDay: perDayMetrics,
     },
     places: selectedPlaces,
     days: dayGroups.map((group, idx) => ({
