@@ -1,5 +1,9 @@
+// 파일 위치: src/app/(web)/attractions/[id]/page.tsx
+// 파일 명: page.tsx
+
 import { getAttractionById } from "@/lib/data";
 import { createKakaoDirectionUrl, hasCoordinate } from "@/lib/kakao-map";
+import { getPlaceOperationInfo } from "@/lib/place-operation-info";
 import { notFound } from "next/navigation";
 
 type AttractionDetail = {
@@ -20,6 +24,8 @@ type AttractionDetail = {
   longitude?: number | null;
   firstimage?: string | null;
   imageUrl?: string | null;
+  opening_hours?: string | null;
+  closed_days?: string | null;
   place_images?: Array<{
     image_url?: string | null;
     is_primary?: boolean | null;
@@ -133,17 +139,7 @@ export default async function AttractionDetailPage({ params }: AttractionDetailP
     .filter((facility) => facility.facility_type)
     .slice(0, 6);
   const events = (attraction.activeEvents ?? []).slice(0, 3);
-  const usageTime = getRawDetail(attraction, [
-    "usetime",
-    "usetimeculture",
-    "usetimeleports",
-    "usetimefestival",
-  ]);
-  const restDate = getRawDetail(attraction, [
-    "restdate",
-    "restdateculture",
-    "restdateleports",
-  ]);
+  const operationInfo = getPlaceOperationInfo(attraction);
   const tel = getRawDetail(attraction, ["tel", "infocenter", "infocenterculture"]);
   const homepage = getUrlFromText(getRawDetail(attraction, ["homepage"]));
   const directionUrl = createKakaoDirectionUrl({
@@ -219,11 +215,11 @@ export default async function AttractionDetailPage({ params }: AttractionDetailP
             </div>
             <div className="rounded-md bg-[#f7f8f5] p-4">
               <dt className="text-[#667165]">운영시간</dt>
-              <dd className="mt-1 font-bold">{usageTime || "운영정보 확인 필요"}</dd>
+              <dd className="mt-1 font-bold">{operationInfo.operationHours || "운영정보 확인 필요"}</dd>
             </div>
             <div className="rounded-md bg-[#f7f8f5] p-4">
               <dt className="text-[#667165]">휴무일</dt>
-              <dd className="mt-1 font-bold">{restDate || "휴무정보 확인 필요"}</dd>
+              <dd className="mt-1 font-bold">{operationInfo.closedDays || "휴무정보 확인 필요"}</dd>
             </div>
             <div className="rounded-md bg-[#f7f8f5] p-4">
               <dt className="text-[#667165]">문의</dt>
@@ -234,6 +230,9 @@ export default async function AttractionDetailPage({ params }: AttractionDetailP
               <dd className="mt-1 font-bold">{source}</dd>
             </div>
           </dl>
+          <p className="mt-3 rounded-md bg-[#fff7e6] px-4 py-3 text-xs font-semibold leading-5 text-[#735c00]">
+            {operationInfo.operationNotice}
+          </p>
 
           {tags.length > 0 ? (
             <div className="mt-6">

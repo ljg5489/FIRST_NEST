@@ -1,10 +1,12 @@
+// 파일 위치: src/app/(web)/explore/page.tsx
+// 파일 명: page.tsx
+
 import { getAttractions, getFestivals, getTravelConditionOptions } from "@/lib/data";
+import { getPlaceOperationInfo } from "@/lib/place-operation-info";
 import type { Attraction } from "@/lib/types";
 import { ExploreClient } from "../components/ExploreClient";
 
 export const dynamic = "force-dynamic";
-
-const dayNames = ["일", "월", "화", "수", "목", "금", "토"];
 
 type ExplorePageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -20,61 +22,6 @@ function getRegionFromAddress(address: string | null | undefined, fallback = "�
 
 function getRawText(place: any, key: string, fallback = "") {
   return getText(place.raw_data?.[key], fallback);
-}
-
-function getOperationInfo(place: any) {
-  const operationHours =
-    getText(place.opening_hours) ||
-    getRawText(place, "usetime") ||
-    getRawText(place, "usetimeculture") ||
-    getRawText(place, "usetimeleports") ||
-    getRawText(place, "usetimefestival");
-  const closedDays =
-    getText(place.closed_days) ||
-    getRawText(place, "restdate") ||
-    getRawText(place, "restdateculture") ||
-    getRawText(place, "restdateleports");
-  const hasOperationInfo = Boolean(operationHours || closedDays);
-
-  if (!hasOperationInfo) {
-    return {
-      hasOperationInfo: false,
-      operationStatus: "unknown" as const,
-      operationLabel: "운영정보 확인 필요",
-      operationNotice: "운영정보 데이터가 부족해 방문 전 확인이 필요합니다.",
-      operationHours: null,
-    };
-  }
-
-  const todayName = dayNames[new Date().getDay()];
-  const normalizedClosedDays = closedDays.replace(/\s/g, "");
-  const isAlwaysOpen =
-    normalizedClosedDays.includes("연중무휴") ||
-    normalizedClosedDays.includes("휴무없음") ||
-    normalizedClosedDays.includes("없음");
-  const isClosedToday =
-    !isAlwaysOpen &&
-    (normalizedClosedDays.includes(`${todayName}요일`) ||
-      normalizedClosedDays.includes(`매주${todayName}`) ||
-      normalizedClosedDays.includes(`${todayName}휴무`));
-
-  if (isClosedToday) {
-    return {
-      hasOperationInfo: true,
-      operationStatus: "closed_today" as const,
-      operationLabel: "오늘 휴무 가능성",
-      operationNotice: `${todayName}요일 휴무 정보가 있어 방문 전 확인이 필요합니다.`,
-      operationHours,
-    };
-  }
-
-  return {
-    hasOperationInfo: true,
-    operationStatus: "available_today" as const,
-    operationLabel: "오늘 방문 가능",
-    operationNotice: operationHours || "운영정보가 확인된 관광지입니다.",
-    operationHours,
-  };
 }
 
 function isThisWeekEvent(event: any) {
@@ -121,7 +68,7 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
     const region = (place.region ?? getRegionFromAddress(place.address, "충남")).replace(/(시|군)$/, '');
     const categoryLabels: Record<string,string> = {HS:'역사',NA:'자연',EX:'체험',VE:'문화',FD:'음식',AC:'숙박',SH:'쇼핑',LS:'레저',EV:'축제'};
     const category = categoryLabels[(place.category_code || '').slice(0,2)] ?? place.category ?? '여행지';
-    const operationInfo = getOperationInfo(place);
+    const operationInfo = getPlaceOperationInfo(place);
     const hasThisWeekEvent = eventRegions.has(region);
 
     return {

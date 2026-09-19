@@ -1,3 +1,6 @@
+// 파일 위치: src/app/(web)/components/TravelIcon.tsx
+// 파일 명: TravelIcon.tsx
+
 import type {CSSProperties} from 'react';
 
 const paths = {
@@ -14,6 +17,7 @@ const paths = {
   arrow: 'M4 12h16m-6-6 6 6-6 6',
   calendar: 'M4 5h16v16H4ZM4 10h16M8 2v5M16 2v5M8 14h2M14 14h2',
   check: 'm5 12 4 4L19 6',
+  globe: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20ZM2 12h20M12 2c3 2.7 4.5 6 4.5 10S15 19.3 12 22M12 2C9 4.7 7.5 8 7.5 12S9 19.3 12 22',
 };
 export type TravelIconName = keyof typeof paths;
 export function TravelIcon({name,size=22,style}:{name:TravelIconName;size?:number;style?:CSSProperties}) {

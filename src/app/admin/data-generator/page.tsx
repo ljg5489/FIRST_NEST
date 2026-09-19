@@ -119,7 +119,7 @@ export default function AdminDataGeneratorPage() {
               AI Data Generator
             </h1>
             <p className="text-[#848A9C] text-sm font-medium">
-              결측치(설명, 전화번호, 운영시간 등)를 AI가 검색하여 자동으로 채워 넣습니다.
+              AI 설명과 카카오 검색 기반 연락처·공식 링크를 채웁니다. 운영시간과 휴무일은 생성하지 않습니다.
             </p>
           </div>
           
@@ -181,7 +181,7 @@ export default function AdminDataGeneratorPage() {
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
-                      OpenAI 데이터 검색 및 작성 중...
+                      OpenAI 설명 작성 및 카카오 장소 검색 중...
                     </p>
                   ) : (
                     <p className="text-[#B28DFF] font-mono text-sm mt-1 flex items-center gap-2">

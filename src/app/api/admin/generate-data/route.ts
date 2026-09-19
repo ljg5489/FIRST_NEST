@@ -23,7 +23,7 @@ export async function POST(request: Request) {
       throw new Error('서버 관리자 키가 설정되지 않았습니다.');
     }
 
-    // 1. OpenAI를 통해 결측치 데이터 5개 생성
+    // 1. OpenAI 설명과 카카오 연락처·웹사이트 데이터 생성
     const aiData = await generateMissingPlaceData(name_ko, address);
 
     // 2. DB 업데이트 수행
@@ -33,8 +33,6 @@ export async function POST(request: Request) {
         description: aiData.description,
         phone: aiData.phone,
         website: aiData.website,
-        opening_hours: aiData.opening_hours,
-        closed_days: aiData.closed_days,
         updated_at: new Date().toISOString()
       })
       .eq('id', id);

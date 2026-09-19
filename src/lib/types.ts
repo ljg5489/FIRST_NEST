@@ -1,3 +1,6 @@
+// 파일 위치: src/lib/types.ts
+// 파일 명: types.ts
+
 export type Interest =
   | "역사"
   | "로컬 음식"
@@ -39,6 +42,7 @@ export type Attraction = {
   operationLabel?: string;
   operationNotice?: string;
   operationHours?: string | null;
+  operationInfoSource?: "tour_api" | "unverified" | "none";
   hasThisWeekEvent?: boolean;
   eventLabel?: string | null;
 };

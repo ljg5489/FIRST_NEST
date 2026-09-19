@@ -1,10 +1,13 @@
+// 파일 위치: src/app/(web)/components/TripPlanner.tsx
+// 파일 명: TripPlanner.tsx
+
 'use client';
 import {useRef,useState,type FormEvent} from 'react';
 import {TravelIcon} from './TravelIcon';
 type Options={startRegions:readonly string[];tripDays:readonly string[];travelPaces:readonly string[];transportOptions:readonly string[];interests:readonly string[];nationalities:readonly string[];languages:readonly string[];budgetTypes:readonly string[]};
-export function TripPlanner({options,initial}:{options:Options;initial:Record<string,string>}){
+export function TripPlanner({options,initial,preferredLanguage}:{options:Options;initial:Record<string,string>;preferredLanguage:string}){
  const [step,setStep]=useState(0);const [busy,setBusy]=useState(false);const form=useRef<HTMLFormElement>(null);
- const [values,setValues]=useState({startRegion:options.startRegions.includes(initial.startRegion)?initial.startRegion:'공주',tripDays:options.tripDays.includes(initial.tripDays)?initial.tripDays:'1일',people:/^[1-9]$/.test(initial.people||'')?initial.people:'2',travelPace:'보통',transport:'대중교통',budget:'100000',budgetType:'전체 예산',nationality:'Korea',language:'Korean'});
+ const [values,setValues]=useState({startRegion:options.startRegions.includes(initial.startRegion)?initial.startRegion:'공주',tripDays:options.tripDays.includes(initial.tripDays)?initial.tripDays:'1일',people:/^[1-9]$/.test(initial.people||'')?initial.people:'2',travelPace:'보통',transport:'대중교통',budget:'100000',budgetType:'전체 예산',nationality:'Korea',language:options.languages.includes(initial.language)?initial.language:options.languages.includes(preferredLanguage)?preferredLanguage:'Korean'});
  const [interests,setInterests]=useState<string[]>([]);
  const set=(key:keyof typeof values,value:string)=>setValues(v=>({...v,[key]:value}));
  function validStep(){const fields=form.current?.querySelectorAll<HTMLInputElement|HTMLSelectElement>(`[data-step="${step}"] input, [data-step="${step}"] select`);for(const field of fields||[]){if(!field.reportValidity())return false;}return true;}

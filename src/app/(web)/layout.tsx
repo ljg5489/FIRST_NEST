@@ -4,23 +4,26 @@ import type { Metadata } from 'next'
 import { BottomNav } from './components/BottomNav'
 import { SiteHeader } from './components/SiteHeader'
 import { SiteFooter } from './components/SiteFooter'
+import { getServerLocale } from '@/features/i18n/server'
 
 export const metadata: Metadata = {
   title: 'travel with me · 나의 첫 번째 여행지',
   description: '공공데이터 기반 스마트 관광 플랫폼',
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const locale = await getServerLocale()
+
   return (
     <div className="travel-site">
-      <SiteHeader />
+      <SiteHeader locale={locale} />
       {children}
-      <SiteFooter />
-      <BottomNav />
+      <SiteFooter locale={locale} />
+      <BottomNav locale={locale} />
     </div>
   )
 }

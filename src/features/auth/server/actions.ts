@@ -139,6 +139,7 @@ export async function signupAction(
   });
 
   if (error) {
+    console.error("[오류] Supabase 회원가입 실패:", error.message);
     const isRateLimited =
       error.message.toLowerCase().includes("rate limit") ||
       error.message.toLowerCase().includes("too many");

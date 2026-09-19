@@ -154,7 +154,7 @@ export async function translatePlaceInfo(nameKo: string, addressKo: string | nul
 }
 
 /**
- * [관리자 전용] 관광지의 결측치 데이터(설명, 전화번호, 웹사이트, 운영시간, 휴무일)를 AI를 통해 생성/검색합니다.
+ * [관리자 전용] 관광지 설명을 AI로 생성하고 전화번호와 웹사이트를 카카오에서 검색합니다.
  * @param nameKo 한국어 관광지 이름
  * @param addressKo 한국어 주소
  */
@@ -190,18 +190,19 @@ export async function generateMissingPlaceData(nameKo: string, addressKo: string
     }
   }
 
-  // 2. OpenAI에는 정보가 없는 컬럼(설명, 운영시간, 휴무일)의 생성만 요청
+  // 2. OpenAI에는 사실 확인이 어려운 운영시간·휴무일을 제외하고 설명만 요청
   const prompt = `
     You are a local guide for Chungcheongnam-do, South Korea.
     Target Attraction:
     - Name: ${nameKo}
     - Address: ${addressKo || 'N/A'}
 
-    Return ONLY a valid JSON object with exactly these 3 keys. Use null if unsure.
+    Return ONLY a valid JSON object with exactly this 1 key. Use null if unsure.
     
     - "description": A natural Korean description (3-4 sentences) explaining what this place is and its features.
-    - "opening_hours": Operating hours in Korean (e.g., "09:00 - 18:00").
-    - "closed_days": Closed days in Korean (e.g., "매주 월요일 휴무", "연중무휴").
+    - Use only facts that can be supported by the supplied name and address. Do not invent history, facilities, accessibility, prices, events, or nearby attractions.
+    - If a useful description cannot be written without unsupported claims, return null for "description".
+    Do not provide or invent opening hours, closed days, prices, phone numbers, or websites.
   `;
 
   try {
@@ -215,13 +216,11 @@ export async function generateMissingPlaceData(nameKo: string, addressKo: string
     const content = response.choices[0].message.content || "{}";
     const aiData = JSON.parse(content);
 
-    // 3. 카카오 검색 결과와 AI 생성 결과를 병합하여 반환
+    // 3. 카카오 검색 결과와 AI 설명을 병합하여 반환
     return {
       description: aiData.description || null,
       phone: fetchedPhone,
-      website: fetchedWebsite,
-      opening_hours: aiData.opening_hours || null,
-      closed_days: aiData.closed_days || null
+      website: fetchedWebsite
     };
 
   } catch (error: any) {

@@ -1,1 +1,6 @@
-export function SiteFooter(){return <footer className="travel-footer"><div className="page-shell"><div className="footer-top"><div><a href="/" className="brand-name">travel with me<span>.</span></a><p>가까운 곳에서 시작하는, 새로운 여행.</p></div><div className="footer-links"><a href="/explore">여행지 탐색</a><a href="/recommend">코스 만들기</a><a href="/account">내 여행</a></div></div><div className="footer-bottom"><p>충남의 장소를 발견하고 나만의 일정으로 이어보세요.<br/>방문 전 운영시간과 이용 요금은 해당 장소에서 확인해 주세요.</p><div><a href="/terms">이용약관</a><a href="/privacy">개인정보처리방침</a><span>© travel with me</span></div></div></div></footer>}
+// 파일 위치: src/app/(web)/components/SiteFooter.tsx
+// 파일 명: SiteFooter.tsx
+
+import {navigationMessages,type Locale} from '@/features/i18n/config';
+
+export function SiteFooter({locale}:{locale:Locale}){const messages=navigationMessages[locale];return <footer className="travel-footer"><div className="page-shell"><div className="footer-top"><div><a href="/" className="brand-name">travel with me<span>.</span></a><p>{messages.footerTagline}</p></div><div className="footer-links"><a href="/explore">{messages.explore}</a><a href="/recommend">{messages.recommend}</a><a href="/account">{messages.myTrip}</a></div></div><div className="footer-bottom"><p>{messages.footerDescription}<br/>{messages.footerNotice}</p><div><a href="/terms">{messages.terms}</a><a href="/privacy">{messages.privacy}</a><span>© travel with me</span></div></div></div></footer>}
