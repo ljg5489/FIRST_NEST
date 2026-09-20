@@ -1,15 +1,10 @@
 // 파일 위치: src/app/(web)/layout.tsx
 // 웹 화면 그룹 레이아웃 파일
-import type { Metadata } from 'next'
 import { BottomNav } from './components/BottomNav'
 import { SiteHeader } from './components/SiteHeader'
 import { SiteFooter } from './components/SiteFooter'
 import { getServerLocale } from '@/features/i18n/server'
-
-export const metadata: Metadata = {
-  title: 'travel with me · 나의 첫 번째 여행지',
-  description: '공공데이터 기반 스마트 관광 플랫폼',
-}
+import { I18nProvider } from '@/features/i18n/I18nProvider'
 
 export default async function RootLayout({
   children,
@@ -19,11 +14,11 @@ export default async function RootLayout({
   const locale = await getServerLocale()
 
   return (
-    <div className="travel-site">
+    <I18nProvider locale={locale}><div className="travel-site">
       <SiteHeader locale={locale} />
       {children}
       <SiteFooter locale={locale} />
       <BottomNav locale={locale} />
-    </div>
+    </div></I18nProvider>
   )
 }

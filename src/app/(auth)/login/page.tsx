@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { AuthForm } from "@/features/auth/ui/AuthForm";
 import { AuthShell } from "@/features/auth/ui/AuthShell";
 import { getSafeNextPath } from "@/features/auth/server/redirect";
+import {getServerLocale} from "@/features/i18n/server";
+import {translate} from "@/features/i18n/messages";
 
 export const metadata: Metadata = { title: "로그인 | travel with me" };
 
@@ -10,7 +12,8 @@ type LoginPageProps = {
 };
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
-  const params = await searchParams;
+  const [params,locale] = await Promise.all([searchParams,getServerLocale()]);
+  const t=(source:string)=>translate(locale,source);
   const rawNext = Array.isArray(params.next) ? params.next[0] : params.next;
   const next = getSafeNextPath(rawNext);
   const confirmed = params.confirmed === "true";
@@ -20,13 +23,13 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
   return (
     <AuthShell mode="login">
         {confirmed ? (
-          <p className="mt-5 rounded-md bg-[#e8f1eb] px-4 py-3 text-sm text-[#174d3c]">이메일 확인이 완료됐습니다. 로그인해 주세요.</p>
+          <p className="mt-5 rounded-md bg-[#e8f1eb] px-4 py-3 text-sm text-[#174d3c]">{t('이메일 확인이 완료됐습니다. 로그인해 주세요.')}</p>
         ) : null}
         {loggedOut ? (
-          <p className="mt-5 rounded-md bg-[#e8f1eb] px-4 py-3 text-sm text-[#174d3c]">안전하게 로그아웃됐습니다.</p>
+          <p className="mt-5 rounded-md bg-[#e8f1eb] px-4 py-3 text-sm text-[#174d3c]">{t('안전하게 로그아웃됐습니다.')}</p>
         ) : null}
         {confirmationError ? (
-          <p role="alert" className="mt-5 rounded-md bg-[#fff0ed] px-4 py-3 text-sm text-[#9f321f]">확인 링크가 만료됐거나 올바르지 않습니다. 회원가입 또는 비밀번호 재설정을 다시 진행해 주세요.</p>
+          <p role="alert" className="mt-5 rounded-md bg-[#fff0ed] px-4 py-3 text-sm text-[#9f321f]">{t('확인 링크가 만료됐거나 올바르지 않습니다. 회원가입 또는 비밀번호 재설정을 다시 진행해 주세요.')}</p>
         ) : null}
         <div className="mt-6"><AuthForm mode="login" next={next} /></div>
     </AuthShell>

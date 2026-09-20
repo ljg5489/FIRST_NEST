@@ -5,6 +5,8 @@ import { getAttractions, getFestivals, getTravelConditionOptions } from "@/lib/d
 import { getPlaceOperationInfo } from "@/lib/place-operation-info";
 import type { Attraction } from "@/lib/types";
 import { ExploreClient } from "../components/ExploreClient";
+import {getServerLocale} from "@/features/i18n/server";
+import {translate} from "@/features/i18n/messages";
 
 export const dynamic = "force-dynamic";
 
@@ -50,11 +52,13 @@ function getSearchParam(
 
 export default async function ExplorePage({ searchParams }: ExplorePageProps) {
   const params = await searchParams;
-  const [attractions, options, festivals] = await Promise.all([
+  const [attractions, options, festivals, locale] = await Promise.all([
     getAttractions(),
     getTravelConditionOptions(),
     getFestivals().catch(() => []),
+    getServerLocale(),
   ]);
+  const t=(source:string)=>translate(locale,source);
   const eventRegions = new Set(
     (festivals as any[])
       .filter(isThisWeekEvent)
@@ -63,8 +67,8 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
   );
 
   const exploreAttractions: Attraction[] = attractions.map((place: any) => {
-    const name = place.name_ko ?? place.name ?? "관광지";
-    const address = place.address ?? "주소 정보 없음";
+    const name = locale === 'ko' ? (place.name_ko ?? place.name ?? t("관광지")) : (place.name_en ?? place.name_ko ?? place.name ?? t("관광지"));
+    const address = locale === 'ko' ? (place.address ?? t("주소 정보 없음")) : (place.address_en ?? place.address ?? t("주소 정보 없음"));
     const region = (place.region ?? getRegionFromAddress(place.address, "충남")).replace(/(시|군)$/, '');
     const categoryLabels: Record<string,string> = {HS:'역사',NA:'자연',EX:'체험',VE:'문화',FD:'음식',AC:'숙박',SH:'쇼핑',LS:'레저',EV:'축제'};
     const category = categoryLabels[(place.category_code || '').slice(0,2)] ?? place.category ?? '여행지';
@@ -79,10 +83,7 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
       category,
       address,
       addressEn: place.address_en ?? place.addressEn,
-      summary:
-        place.summary ??
-        place.description ??
-        getRawText(place, "overview", "한국관광공사 TourAPI 기반 충남 관광지입니다."),
+      summary: locale === 'ko' ? (place.summary ?? place.description ?? getRawText(place, "overview", t("한국관광공사 TourAPI 기반 충남 관광지입니다."))) : t("한국관광공사 TourAPI 기반 충남 관광지입니다."),
       source: "Korea Tourism Organization TourAPI",
       estimatedCost: place.estimatedCost ?? 0,
       mapUrl: place.mapUrl ?? `https://map.kakao.com/link/search/${encodeURIComponent(name)}`,
@@ -98,7 +99,7 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
 
   return (
     <main className="page-shell">
-      <div className="page-heading"><p className="eyebrow">FIND YOUR NEXT PLACE</p><h1>마음이 가는 곳을 찾아보세요.</h1><p>익숙한 동네부터 처음 만나는 풍경까지, 충남의 다양한 여행지.</p></div>
+      <div className="page-heading"><p className="eyebrow">FIND YOUR NEXT PLACE</p><h1>{t("마음이 가는 곳을 찾아보세요.")}</h1><p>{t("익숙한 동네부터 처음 만나는 풍경까지, 충남의 다양한 여행지.")}</p></div>
       <ExploreClient
         attractions={exploreAttractions}
         interests={options.interests}

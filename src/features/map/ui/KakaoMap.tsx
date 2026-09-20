@@ -4,6 +4,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import {useI18n} from '@/features/i18n/I18nProvider';
 
 declare global {
   interface Window {
@@ -29,6 +30,7 @@ interface KakaoMapProps {
 }
 
 export default function KakaoMap({ places = [] }: KakaoMapProps) {
+  const {t}=useI18n();
   const mapRef = useRef<HTMLDivElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [mapInstance, setMapInstance] = useState<any>(null);
@@ -47,14 +49,14 @@ export default function KakaoMap({ places = [] }: KakaoMapProps) {
             ...place,
             latitude,
             longitude,
-            title: place.name ?? place.name_ko ?? place.title ?? '관광지',
+            title: place.name ?? place.name_ko ?? place.title ?? t('관광지'),
           };
         })
         .filter(
           (place) =>
             Number.isFinite(place.latitude) && Number.isFinite(place.longitude),
         ),
-    [places],
+    [places, t],
   );
 
   // 1. 카카오맵 스크립트를 수동으로 직접 주입하는 로직
@@ -63,7 +65,7 @@ export default function KakaoMap({ places = [] }: KakaoMapProps) {
 
     if (!kakaoApiKey) {
       console.error("[오류] NEXT_PUBLIC_KAKAO_MAP_JS_KEY가 설정되지 않았습니다.");
-      setError("지도 설정을 확인하는 중입니다.");
+      setError(t("지도 설정을 확인하는 중입니다."));
       return;
     }
 
@@ -79,7 +81,7 @@ export default function KakaoMap({ places = [] }: KakaoMapProps) {
         "[오류] 카카오맵 로딩 실패:",
         `origin=${window.location.origin}`,
       );
-      setError("잠시 후 다시 지도를 열어주세요.");
+      setError(t("잠시 후 다시 지도를 열어주세요."));
     };
 
     const loadingTimer = window.setTimeout(failToLoadMap, 8000);
@@ -127,7 +129,7 @@ export default function KakaoMap({ places = [] }: KakaoMapProps) {
         setError(
           host.startsWith('127.0.0.1')
             ? `localhost 주소로 다시 열어주세요. ${localhostUrl}`
-            : "지도를 불러오지 못했습니다.",
+            : t("지도를 불러오지 못했습니다."),
         );
       };
 
@@ -140,7 +142,7 @@ export default function KakaoMap({ places = [] }: KakaoMapProps) {
       existingScript?.removeEventListener("load", initMap);
       existingScript?.removeEventListener("error", failToLoadMap);
     };
-  }, [mapInstance]);
+  }, [mapInstance, t]);
 
   // 2. 지도가 로드된 후 관광지 마커를 찍는 로직
   useEffect(() => {
@@ -204,9 +206,9 @@ export default function KakaoMap({ places = [] }: KakaoMapProps) {
   if (error) {
     return (
       <div className="flex h-[420px] w-full flex-col items-center justify-center rounded-lg border border-[#dce2d7] bg-white p-6 text-center sm:h-[500px]">
-        <p className="text-lg font-black text-[#17211b]">지도를 불러오지 못했어요.</p>
+        <p className="text-lg font-black text-[#17211b]">{t('지도를 불러오지 못했어요.')}</p>
         <p className="mt-3 max-w-sm text-sm font-semibold leading-6 text-[#667165]">
-          {error} 위치 정보는 아래 목록과 길찾기 버튼으로 확인할 수 있습니다.
+          {error} {t('위치 정보는 아래 목록과 길찾기 버튼으로 확인할 수 있습니다.')}
         </p>
       </div>
     );
@@ -216,12 +218,12 @@ export default function KakaoMap({ places = [] }: KakaoMapProps) {
     <div className="relative h-[420px] w-full overflow-hidden rounded-lg border border-[#dce2d7] bg-white shadow-[0_10px_30px_rgba(23,33,27,0.08)] sm:h-[500px]">
       {!mapInstance && (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-gray-50 font-bold text-gray-500">
-          지도를 그리는 중입니다...
+          {t('지도를 그리는 중입니다...')}
         </div>
       )}
       {mapInstance && mapPlaces.length === 0 && (
         <div className="absolute inset-x-4 top-4 z-10 rounded-lg border border-[#dce2d7] bg-white/95 p-3 text-sm font-bold text-[#667165] shadow-sm">
-          좌표가 있는 관광지가 없어 기본 충남 지도를 표시합니다.
+          {t('좌표가 있는 관광지가 없어 기본 충남 지도를 표시합니다.')}
         </div>
       )}
       {/* 실제 지도가 렌더링될 div */}

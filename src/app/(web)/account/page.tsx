@@ -8,6 +8,8 @@ import {
 import { recordCurrentConsentAction } from "@/features/auth/server/actions";
 import { DeleteAccountForm } from "@/features/auth/ui/DeleteAccountForm";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import {getServerLocale} from "@/features/i18n/server";
+import {localeTag, translate} from "@/features/i18n/messages";
 
 export const metadata: Metadata = { title: "내 계정 | travel with me" };
 export const dynamic = "force-dynamic";
@@ -17,7 +19,8 @@ type AccountPageProps = {
 };
 
 export default async function AccountPage({ searchParams }: AccountPageProps) {
-  const supabase = await createServerSupabaseClient();
+  const [supabase,locale] = await Promise.all([createServerSupabaseClient(),getServerLocale()]);
+  const t=(source:string)=>translate(locale,source);
   const { data: claimsData } = await supabase.auth.getClaims();
   const userId = claimsData?.claims?.sub;
 
@@ -41,7 +44,7 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
     latestConsent.terms_version !== TERMS_VERSION ||
     latestConsent.privacy_version !== PRIVACY_VERSION;
   const email =
-    typeof claimsData.claims.email === "string" ? claimsData.claims.email : "이메일 확인 불가";
+    typeof claimsData.claims.email === "string" ? claimsData.claims.email : t("이메일 확인 불가");
   const passwordUpdated = params.password === "updated";
   const consentRecorded = params.consent === "recorded";
   const error = Array.isArray(params.error) ? params.error[0] : params.error;
@@ -49,100 +52,100 @@ export default async function AccountPage({ searchParams }: AccountPageProps) {
   return (
     <main className="page-shell">
       <p className="section-label">/account</p>
-      <h1 className="mt-2 text-2xl font-black sm:text-3xl">내 계정</h1>
-      <p className="mt-3 max-w-2xl text-[#4f5b52]">로그인 정보와 동의 이력을 확인하고 계정을 관리합니다.</p>
+      <h1 className="mt-2 text-2xl font-black sm:text-3xl">{t('내 계정')}</h1>
+      <p className="mt-3 max-w-2xl text-[#4f5b52]">{t('로그인 정보와 동의 이력을 확인하고 계정을 관리합니다.')}</p>
 
       {passwordUpdated ? (
-        <p className="mt-6 rounded-md bg-[#e8f1eb] px-4 py-3 text-sm text-[#174d3c]">비밀번호가 변경됐습니다.</p>
+        <p className="mt-6 rounded-md bg-[#e8f1eb] px-4 py-3 text-sm text-[#174d3c]">{t('비밀번호가 변경됐습니다.')}</p>
       ) : null}
       {consentRecorded ? (
-        <p className="mt-6 rounded-md bg-[#e8f1eb] px-4 py-3 text-sm text-[#174d3c]">현재 이용약관과 개인정보 처리방침 동의가 기록됐습니다.</p>
+        <p className="mt-6 rounded-md bg-[#e8f1eb] px-4 py-3 text-sm text-[#174d3c]">{t('현재 이용약관과 개인정보 처리방침 동의가 기록됐습니다.')}</p>
       ) : null}
       {error ? (
         <p role="alert" className="mt-6 rounded-md bg-[#fff0ed] px-4 py-3 text-sm text-[#9f321f]">
-          {error === "admin-only" ? "관리자 계정만 접근할 수 있습니다." : error === "confirmation"
-            ? "확인 문구를 정확히 입력해 주세요."
+          {error === "admin-only" ? t("관리자 계정만 접근할 수 있습니다.") : error === "confirmation"
+            ? t("확인 문구를 정확히 입력해 주세요.")
             : error === "consent"
-              ? "필수 확인 및 동의 항목을 모두 선택해 주세요."
+              ? t("필수 확인 및 동의 항목을 모두 선택해 주세요.")
               : error === "consent-save"
-                ? "동의 이력을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요."
-                : "계정을 삭제하지 못했습니다. 잠시 후 다시 시도해 주세요."}
+                ? t("동의 이력을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.")
+                : t("계정을 삭제하지 못했습니다. 잠시 후 다시 시도해 주세요.")}
         </p>
       ) : null}
 
       <section className="soft-card mt-6 rounded-xl p-5">
-        <h2 className="text-lg font-bold">내 저장 코스</h2>
-        {coursesError ? <p role="alert" className="mt-3">저장한 코스를 불러오지 못했습니다. 잠시 후 다시 열어 주세요.</p> : savedCourses?.length ? <ul className="mt-3 grid gap-3">{savedCourses.map(course => <li key={course.id}><a className="flex justify-between gap-3 rounded border p-3" href={`/results?courseId=${course.id}`}><span className="font-bold">{course.title}</span><span className="text-sm">{new Date(course.updated_at).toLocaleDateString('ko-KR')}</span></a></li>)}</ul> : <p className="mt-3 text-sm">아직 저장한 코스가 없습니다. 추천 결과에서 계정에 저장해 주세요.</p>}
-        <a href="/recommend" className="primary-button mt-4">새 여행 추천받기</a>
+        <h2 className="text-lg font-bold">{t('내 저장 코스')}</h2>
+        {coursesError ? <p role="alert" className="mt-3">{t('저장한 코스를 불러오지 못했습니다. 잠시 후 다시 열어 주세요.')}</p> : savedCourses?.length ? <ul className="mt-3 grid gap-3">{savedCourses.map(course => <li key={course.id}><a className="flex justify-between gap-3 rounded border p-3" href={`/results?courseId=${course.id}`}><span className="font-bold">{course.title}</span><span className="text-sm">{new Date(course.updated_at).toLocaleDateString(localeTag(locale))}</span></a></li>)}</ul> : <p className="mt-3 text-sm">{t('아직 저장한 코스가 없습니다. 추천 결과에서 계정에 저장해 주세요.')}</p>}
+        <a href="/recommend" className="primary-button mt-4">{t('새 여행 추천받기')}</a>
       </section>
       <div className="mt-6 grid gap-5 lg:grid-cols-2">
         <section className="soft-card rounded-xl p-5 sm:p-6">
-          <h2 className="text-lg font-black">로그인 정보</h2>
+          <h2 className="text-lg font-black">{t('로그인 정보')}</h2>
           <dl className="mt-4 grid gap-4 text-sm">
             <div>
-              <dt className="text-[#667165]">이메일</dt>
+              <dt className="text-[#667165]">{t('이메일')}</dt>
               <dd className="mt-1 font-bold">{email}</dd>
             </div>
             <div>
-              <dt className="text-[#667165]">회원 식별값</dt>
+              <dt className="text-[#667165]">{t('회원 식별값')}</dt>
               <dd className="mt-1 break-all font-mono text-xs text-[#5d675f]">{userId}</dd>
             </div>
           </dl>
           <div className="mt-6 flex flex-wrap gap-3">
-            <a href="/forgot-password" className="primary-button">비밀번호 변경</a>
+            <a href="/forgot-password" className="primary-button">{t('비밀번호 변경')}</a>
             <form action="/auth/signout" method="post">
-              <button type="submit" className="inline-flex min-h-11 items-center justify-center rounded-md border border-[#dce2d7] bg-white px-5 py-3 text-sm font-black text-[#3d4941]">로그아웃</button>
+              <button type="submit" className="inline-flex min-h-11 items-center justify-center rounded-md border border-[#dce2d7] bg-white px-5 py-3 text-sm font-black text-[#3d4941]">{t('로그아웃')}</button>
             </form>
           </div>
         </section>
 
         <section className="soft-card rounded-xl p-5 sm:p-6">
-          <h2 className="text-lg font-black">필수 동의 이력</h2>
+          <h2 className="text-lg font-black">{t('필수 동의 이력')}</h2>
           {latestConsent && !needsCurrentConsent ? (
             <dl className="mt-4 grid gap-4 text-sm">
               <div>
-                <dt className="text-[#667165]">이용약관 버전</dt>
+                <dt className="text-[#667165]">{t('이용약관 버전')}</dt>
                 <dd className="mt-1 font-bold">{latestConsent.terms_version}</dd>
               </div>
               <div>
-                <dt className="text-[#667165]">개인정보 처리방침 버전</dt>
+                <dt className="text-[#667165]">{t('개인정보 처리방침 버전')}</dt>
                 <dd className="mt-1 font-bold">{latestConsent.privacy_version}</dd>
               </div>
               <div>
-                <dt className="text-[#667165]">동의 일시</dt>
-                <dd className="mt-1 font-bold">{new Date(latestConsent.terms_accepted_at).toLocaleString("ko-KR")}</dd>
+                <dt className="text-[#667165]">{t('동의 일시')}</dt>
+                <dd className="mt-1 font-bold">{new Date(latestConsent.terms_accepted_at).toLocaleString(localeTag(locale))}</dd>
               </div>
             </dl>
           ) : (
             <form action={recordCurrentConsentAction} className="mt-4 grid gap-3 text-sm">
               <p className="leading-6 text-[#5d675f]">
-                과거 동의를 임의로 소급 기록하지 않았습니다. 현재 문서를 확인한 뒤 직접 동의해 주세요.
+                {t('과거 동의를 임의로 소급 기록하지 않았습니다. 현재 문서를 확인한 뒤 직접 동의해 주세요.')}
               </p>
               <label className="flex items-start gap-3">
                 <input className="mt-1" type="checkbox" name="ageConfirmed" required />
-                <span>만 14세 이상입니다.</span>
+                <span>{t('만 14세 이상입니다.')}</span>
               </label>
               <label className="flex items-start gap-3">
                 <input className="mt-1" type="checkbox" name="termsAccepted" required />
                 <span>
-                  <Link href="/terms" target="_blank" className="font-bold text-[#174d3c] underline">이용약관</Link>에 동의합니다.
+                  <Link href="/terms" target="_blank" className="font-bold text-[#174d3c] underline">{t('이용약관')}</Link> {t('에 동의합니다.')}
                 </span>
               </label>
               <label className="flex items-start gap-3">
                 <input className="mt-1" type="checkbox" name="privacyAccepted" required />
                 <span>
-                  <Link href="/privacy" target="_blank" className="font-bold text-[#174d3c] underline">개인정보 처리방침</Link>을 확인하고 동의합니다.
+                  <Link href="/privacy" target="_blank" className="font-bold text-[#174d3c] underline">{t('개인정보 처리방침')}</Link> {t('을 확인하고 동의합니다.')}
                 </span>
               </label>
-              <button type="submit" className="primary-button mt-2 border-0">동의하고 계속하기</button>
+              <button type="submit" className="primary-button mt-2 border-0">{t('동의하고 계속하기')}</button>
             </form>
           )}
         </section>
       </div>
 
       <section className="mt-6 rounded-xl border border-[#efc7bf] bg-white p-5 sm:p-6">
-        <h2 className="text-lg font-black text-[#9f321f]">회원 탈퇴</h2>
-        <p className="mt-3 text-sm leading-6 text-[#5d675f]">계정, 저장한 코스와 동의 기록이 삭제됩니다. 삭제 후에는 복구할 수 없습니다.</p>
+        <h2 className="text-lg font-black text-[#9f321f]">{t('회원 탈퇴')}</h2>
+        <p className="mt-3 text-sm leading-6 text-[#5d675f]">{t('계정, 저장한 코스와 동의 기록이 삭제됩니다. 삭제 후에는 복구할 수 없습니다.')}</p>
         <DeleteAccountForm />
       </section>
     </main>

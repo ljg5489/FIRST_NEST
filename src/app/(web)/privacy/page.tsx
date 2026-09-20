@@ -4,11 +4,64 @@
 import type { Metadata } from "next";
 import { PRIVACY_VERSION } from "@/features/auth/constants";
 import { isLegalOperatorConfigured, legalOperator } from "@/features/legal/config";
+import {getServerLocale} from "@/features/i18n/server";
+import type {Locale} from "@/features/i18n/config";
+
+const localizedPrivacy: Record<Exclude<Locale,'ko'>,{title:string;effective:string;contact:string;sections:Array<{title:string;body:string}>}> = {
+  en:{title:'Privacy Policy',effective:'Effective date and version',contact:'Privacy contact',sections:[
+    {title:'1. Data controller',body:'The service operator shown below is responsible for personal data processed by travel with me.'},
+    {title:'2. Purposes, data, and retention',body:'We process email, an internal member ID, authentication data, consent history, and saved itineraries to provide sign-up, sign-in, account recovery, consent records, and trip-saving features. Account data is retained until account deletion unless law requires longer retention. Security logs are retained only for the period required for security and legal obligations.'},
+    {title:'3. Legal basis',body:'Processing is based on performance of the service contract and the required consent provided by the member. You may browse public travel information without an account, but refusing required data prevents use of member features.'},
+    {title:'4. Service providers',body:'Supabase provides authentication and database services; Vercel provides hosting, deployment, and security logs; OpenAI generates travel recommendation text without receiving email or member IDs; Kakao provides maps, directions, and place search. Each provider retains data according to its contract, policy, and applicable law.'},
+    {title:'5. International transfers',body:'Requests processed by Vercel and OpenAI may be encrypted and transferred to the United States and countries where their disclosed subprocessors operate. OpenAI API data is not used to train models by default, and standard abuse-monitoring logs may be retained for up to 30 days, subject to legal and security exceptions.'},
+    {title:'6. Cookies and local storage',body:'Required cookies maintain authentication and security. Travel preferences and temporary itineraries may use browser local or session storage. We currently use no personalized advertising, advertising identifiers, or third-party behavioral analytics.'},
+    {title:'7. Location data',body:'We do not store a member’s real-time location. Separate terms and consent will be provided before adding a feature that stores or uses personal location data.'},
+    {title:'8. AI recommendations',body:'AI explains recommendations using selected travel preferences and place names. It does not generate operating hours, closed days, or prices. TourAPI operating information is displayed only when its source is confirmed; otherwise the service asks users to verify before visiting.'},
+    {title:'9. Deletion',body:'Personal data is deleted without delay after account deletion or fulfillment of its purpose, except data that must be retained by law.'},
+    {title:'10. Your rights',body:'Members can review account and consent information, delete their account, and request access, correction, deletion, suspension of processing, or withdrawal of consent through the privacy contact.'},
+    {title:'11. Security measures',body:'We apply least-privilege access, row-level security, encrypted transport, server-only administrator secrets, security response headers, and access-log review.'},
+    {title:'12. Changes',body:'Material changes are announced in the service before they take effect, and separate consent is obtained when required.'},
+  ]},
+  ja:{title:'プライバシーポリシー',effective:'施行日・バージョン',contact:'個人情報お問い合わせ',sections:[
+    {title:'1. 個人情報取扱者',body:'以下のサービス運営者が travel with me で処理される個人情報を管理します。'},
+    {title:'2. 利用目的・項目・保有期間',body:'会員登録、ログイン、アカウント復旧、同意履歴、旅行コース保存のため、メールアドレス、内部会員ID、認証情報、同意履歴、保存コースを処理します。法令上の義務がない限り、アカウント削除時まで保有します。'},
+    {title:'3. 処理根拠',body:'サービス契約の履行および会員が示した必須同意に基づいて処理します。非会員でも公開観光情報は閲覧できます。'},
+    {title:'4. 外部サービス',body:'Supabase は認証とデータベース、Vercel はホスティングとセキュリティログ、OpenAI はメールや会員IDを含まない旅行説明生成、Kakao は地図・経路・場所検索を提供します。'},
+    {title:'5. 国外移転',body:'Vercel と OpenAI の処理では、暗号化された情報が米国および公開された再委託先所在国へ移転される場合があります。OpenAI API データは既定でモデル学習に使用されず、標準の不正利用監視ログは最大30日保持される場合があります。'},
+    {title:'6. Cookie・ローカル保存',body:'認証とセキュリティに必要な Cookie を使用し、一時日程はブラウザ保存領域を利用する場合があります。現在、パーソナライズ広告や第三者行動分析は使用していません。'},
+    {title:'7. 位置情報',body:'会員のリアルタイム位置は保存しません。個人位置情報を利用する機能を追加する前に、別途規約と同意を提供します。'},
+    {title:'8. AI おすすめ',body:'AI は選択した旅行条件と観光地名をもとに説明を作成します。営業時間、休業日、料金は生成せず、出典が確認できる TourAPI 情報のみ参考表示します。'},
+    {title:'9. 破棄',body:'退会または目的達成後、法令上保存が必要な情報を除き、個人情報を速やかに削除します。'},
+    {title:'10. 利用者の権利',body:'会員は情報の閲覧、訂正、削除、処理停止、同意撤回を問い合わせ窓口から請求できます。'},
+    {title:'11. 安全管理措置',body:'最小権限、RLS、通信暗号化、管理者秘密情報のサーバー限定保管、セキュリティヘッダー、アクセスログ点検を適用します。'},
+    {title:'12. 変更',body:'重要な変更は施行前にサービス上で通知し、必要な場合は改めて同意を取得します。'},
+  ]},
+  vi:{title:'Chính sách quyền riêng tư',effective:'Ngày hiệu lực và phiên bản',contact:'Liên hệ quyền riêng tư',sections:[
+    {title:'1. Bên kiểm soát dữ liệu',body:'Đơn vị vận hành dịch vụ dưới đây chịu trách nhiệm về dữ liệu cá nhân được xử lý bởi travel with me.'},
+    {title:'2. Mục đích, dữ liệu và thời gian lưu giữ',body:'Chúng tôi xử lý email, mã thành viên nội bộ, dữ liệu xác thực, lịch sử đồng ý và lịch trình đã lưu để cung cấp đăng ký, đăng nhập, khôi phục tài khoản và lưu chuyến đi. Dữ liệu được giữ đến khi xóa tài khoản, trừ khi pháp luật yêu cầu lâu hơn.'},
+    {title:'3. Cơ sở xử lý',body:'Việc xử lý dựa trên thực hiện hợp đồng dịch vụ và sự đồng ý bắt buộc của thành viên. Bạn vẫn có thể xem thông tin du lịch công khai mà không cần tài khoản.'},
+    {title:'4. Nhà cung cấp dịch vụ',body:'Supabase cung cấp xác thực và cơ sở dữ liệu; Vercel cung cấp lưu trữ và nhật ký bảo mật; OpenAI tạo nội dung gợi ý mà không nhận email hoặc mã thành viên; Kakao cung cấp bản đồ, chỉ đường và tìm kiếm địa điểm.'},
+    {title:'5. Chuyển dữ liệu ra nước ngoài',body:'Dữ liệu do Vercel và OpenAI xử lý có thể được mã hóa và chuyển đến Hoa Kỳ và quốc gia của các nhà thầu phụ đã công bố. Dữ liệu API OpenAI mặc định không dùng để huấn luyện mô hình và nhật ký giám sát có thể được giữ tối đa 30 ngày.'},
+    {title:'6. Cookie và lưu trữ cục bộ',body:'Cookie cần thiết được dùng cho xác thực và bảo mật. Tùy chọn du lịch và lịch trình tạm thời có thể dùng bộ nhớ cục bộ hoặc phiên của trình duyệt. Hiện không có quảng cáo cá nhân hóa hoặc phân tích hành vi bên thứ ba.'},
+    {title:'7. Dữ liệu vị trí',body:'Chúng tôi không lưu vị trí thời gian thực của thành viên. Điều khoản và đồng ý riêng sẽ được cung cấp trước khi thêm tính năng vị trí cá nhân.'},
+    {title:'8. Gợi ý AI',body:'AI giải thích gợi ý bằng điều kiện chuyến đi và tên địa điểm đã chọn. AI không tạo giờ mở cửa, ngày nghỉ hoặc giá. Chỉ thông tin TourAPI có nguồn xác nhận mới được hiển thị để tham khảo.'},
+    {title:'9. Xóa dữ liệu',body:'Dữ liệu cá nhân được xóa ngay sau khi xóa tài khoản hoặc hoàn thành mục đích, trừ dữ liệu phải lưu theo pháp luật.'},
+    {title:'10. Quyền của bạn',body:'Thành viên có thể xem thông tin tài khoản và đồng ý, xóa tài khoản, và yêu cầu truy cập, sửa, xóa, dừng xử lý hoặc rút lại đồng ý.'},
+    {title:'11. Biện pháp bảo mật',body:'Chúng tôi áp dụng quyền tối thiểu, RLS, truyền mã hóa, bí mật quản trị chỉ trên máy chủ, tiêu đề phản hồi bảo mật và kiểm tra nhật ký truy cập.'},
+    {title:'12. Thay đổi',body:'Các thay đổi quan trọng được thông báo trước khi có hiệu lực và sẽ xin đồng ý riêng khi cần.'},
+  ]},
+};
 
 export const metadata: Metadata = { title: "개인정보 처리방침 | travel with me" };
 
-export default function PrivacyPage() {
+export default async function PrivacyPage() {
+  const locale=await getServerLocale();
   const isConfigured = isLegalOperatorConfigured();
+
+  if (locale !== 'ko') {
+    const copy=localizedPrivacy[locale];
+    return <main className="page-shell"><p className="section-label">PRIVACY</p><h1 className="mt-2 text-2xl font-black sm:text-3xl">{copy.title}</h1><p className="mt-3 text-sm text-[#5d675f]">{copy.effective}: {PRIVACY_VERSION}</p><article className="soft-card mt-6 grid gap-7 rounded-xl p-5 text-sm leading-7 text-[#3d4941] sm:p-8"><section><h2 className="text-lg font-black text-[#17211b]">{copy.contact}</h2><p className="mt-2">{legalOperator.name} · {legalOperator.privacyContact}</p></section>{copy.sections.map(section=><section key={section.title}><h2 className="text-lg font-black text-[#17211b]">{section.title}</h2><p className="mt-2">{section.body}</p></section>)}<section><h2 className="text-lg font-black text-[#17211b]">References</h2><p className="mt-2 flex flex-wrap gap-3"><a className="font-bold underline" href="https://vercel.com/legal/dpa" target="_blank" rel="noreferrer">Vercel DPA</a><a className="font-bold underline" href="https://platform.openai.com/docs/models/default-usage-policies-by-endpoint" target="_blank" rel="noreferrer">OpenAI API data policy</a><a className="font-bold underline" href="https://supabase.com/docs/guides/platform/regions" target="_blank" rel="noreferrer">Supabase regions</a></p></section></article></main>;
+  }
 
   return (
     <main className="page-shell">
